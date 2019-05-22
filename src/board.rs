@@ -8,7 +8,7 @@ pub enum GameStatus {
     ChaosWins,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Cell {
     X,
     O,
@@ -59,7 +59,7 @@ impl Game {
                 }
             }
         }
-        max_count
+        max(count, max_count)
     }
 
     pub fn get_status(&self) -> GameStatus {
@@ -77,7 +77,19 @@ impl Game {
             return GameStatus::ChaosWins;
         }
         let diag_min = min(col, row);
+        let diag_search = match row as i64 - col as i64 {
+            -1 => 5,
+            0 => 6,
+            1 => 5,
+            _ => 0,
+        };
         let anti_diag_min = min(col, self.size - row - 1);
+        let anti_diag_search = match row + col {
+            4 => 5,
+            5 => 6,
+            6 => 5,
+            _ => 0,
+        };
         if false
         // Check col
         || Self::num_consecutive(self.size, &|j|
@@ -86,11 +98,11 @@ impl Game {
         || Self::num_consecutive(self.size, &|i|
             self.flat_index(i, row)) == self.num_to_win
         // Check diagonal
-        || Self::num_consecutive(self.size, &|i|
+        || Self::num_consecutive(diag_search, &|i|
             self.flat_index(col + i - diag_min, row + i - diag_min)) == self.num_to_win
         // Check anti-diagonal
-        || Self::num_consecutive(self.size, &|i|
-            self.flat_index(col + i - anti_diag_min, row - i + anti_diag_min)) == self.num_to_win
+        || Self::num_consecutive(anti_diag_search, &|i|
+            self.flat_index(col + i - anti_diag_min, row + anti_diag_min - i)) == self.num_to_win
         {
             return GameStatus::OrderWins;
         }
@@ -134,149 +146,142 @@ impl fmt::Display for Game {
     }
 }
 
-/*
 #[cfg(test)]
 mod test {
-    use crate::board::Game;
-    use crate::board::GameStatus::OrderWins;
+    use super::{Game, GameStatus, Cell};
 
     #[test]
     fn test_horizontal_win_left() {
         let mut game = Game::new();
-        let x = "x".to_owned();
-        let mut res = game.make_move(x.clone(), 0);
-
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 1);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 2);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 3);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 4);
-        assert_eq!(res, Some(OrderWins));
+        let x = Cell::X;
+        game = game.make_move(x, 0, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 1, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 2, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 3, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 4, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
-
     #[test]
     fn test_horizontal_win_right() {
         let mut game = Game::new();
-        let x = "x".to_owned();
-        let mut res = game.make_move(x.clone(), 4);
-
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 3);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 2);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 1);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 0);
-        assert_eq!(res, Some(OrderWins));
+        let x = Cell::X;
+        game = game.make_move(x, 5, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 4, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 3, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 2, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 1, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::OrderWins);
+    }
+    #[test]
+    fn test_vertical_win_up() {
+        let mut game = Game::new();
+        let x = Cell::X;
+        game = game.make_move(x, 1, 5).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 1, 4).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 1, 3).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 1, 2).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 1, 1).unwrap();
+        assert_eq!(game.get_status(), GameStatus::OrderWins);
+    }
+    #[test]
+    fn test_vertical_win_down() {
+        let mut game = Game::new();
+        let x = Cell::X;
+        game = game.make_move(x, 5, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 5, 1).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 5, 2).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 5, 3).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 0, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 5, 4).unwrap();
+        assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
 
     #[test]
-    fn test_horizontal_mix() {
+    fn test_diagonal_win() {
         let mut game = Game::new();
-        let x = "x".to_owned();
-        let mut res = game.make_move(x.clone(), 11);
-
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 7);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 9);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 10);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 8);
-        assert_eq!(res, Some(OrderWins));
+        let x = Cell::O;
+        game = game.make_move(x, 0, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 1, 1).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 2, 2).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 3, 3).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 4, 4).unwrap();
+        assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
-
+    
     #[test]
-    fn test_vertical_loss() {
+    fn test_anti_diagonal_win() {
         let mut game = Game::new();
-        let x = "x".to_owned();
-        let o = "o".to_owned();
-        let mut res = game.make_move(x.clone(), 0);
-
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 12);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 8);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 6);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 30);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 24);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 18);
-        assert_eq!(res, None);
+        let x = Cell::O;
+        game = game.make_move(x, 4, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 2, 2).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 1, 3).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 3, 1).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 0, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 0, 4).unwrap();
+        assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
-
     #[test]
-    fn test_vertical_win() {
+    fn test_diagonal_win2() {
         let mut game = Game::new();
-        let x = "x".to_owned();
-        let o = "o".to_owned();
-        let mut res = game.make_move(x.clone(), 0);
-
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 12);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 24);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 6);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 8);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 30);
-        assert_eq!(res, None);
-        res = game.make_move(x.clone(), 18);
-        assert_eq!(res, Some(OrderWins));
+        let x = Cell::O;
+        game = game.make_move(x, 1, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 2, 1).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 3, 2).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 4, 3).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 0, 5).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 5, 4).unwrap();
+        assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
-
     #[test]
-    fn test_diags1() {
+    fn test_anti_np_win() {
         let mut game = Game::new();
-        let x = "x".to_owned();
-        let o = "o".to_owned();
-        let mut res = game.make_move(o.clone(), 0);
-
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 7);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 24);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 19);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 14);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 9);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 4);
-        assert_eq!(res, Some(OrderWins));
-    }
-
-    #[test]
-    fn test_diags2() {
-        let mut game = Game::new();
-        let x = "x".to_owned();
-        let o = "o".to_owned();
-        let mut res = game.make_move(o.clone(), 6);
-
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 13);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 20);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 27);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 34);
-        assert_eq!(res, Some(OrderWins));
-        res = game.make_move(o.clone(), 9);
-        assert_eq!(res, None);
-        res = game.make_move(o.clone(), 4);
-        assert_eq!(res, None);
+        let x = Cell::X;
+        let o = Cell::O;
+        game = game.make_move(x, 1, 0).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(o, 2, 1).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 3, 3).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(o, 4, 3).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(x, 0, 5).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(o, 5, 4).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(o, 3, 2).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
     }
 }
-*/
+
