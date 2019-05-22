@@ -1,0 +1,7 @@
+[package]
+name = "project"
+version = "0.1.0"
+authors = ["Ben Levinson <benjaminlevinson2019@u.northwestern.edu>"]
+edition = "2018"
+
+[dependencies]
