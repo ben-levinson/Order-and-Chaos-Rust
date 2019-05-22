@@ -48,6 +48,7 @@ impl Game {
                     if cell == cell_type {
                         count + 1
                     } else {
+                        max_count = max(count, max_count);
                         cell_type = cell;
                         1
                     }
