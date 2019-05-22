@@ -1,7 +1,7 @@
-use project::board::{Game, GameOver};
+use project::board::{Cell, Game, GameStatus};
 use std::io::{self, BufRead};
 
-fn read_input() -> Option<(String, usize)> {
+fn read_input() -> Option<(Cell, usize, usize)> {
     let mut buffer = String::new();
 
     let user_input = io::stdin().lock().read_line(&mut buffer);
@@ -19,14 +19,14 @@ fn read_input() -> Option<(String, usize)> {
     }
     let row = wh.next().unwrap().parse::<usize>().unwrap();
     let col = wh.next().unwrap().parse::<usize>().unwrap();
-    Some((piece.to_owned(), row*6+col))
+    let cell_type = if piece == "x" { Cell::X } else { Cell::O };
+    Some((cell_type, col, row))
 }
 
 fn main() {
     let mut game = Game::new();
     let mut turn = false;
     loop {
-
         let input = read_input();
         if input.is_none() {
             break;
@@ -38,18 +38,18 @@ fn main() {
             println!("Chaos' turn");
             turn = !turn;
         }
-        let (piece, loc) = input.unwrap();
-
-        match game.make_move(piece, loc) {
-            Some(winner) => {
-                match winner {
-                    GameOver::OrderWins => println!("Order wins"),
-                    GameOver::ChaosWins => println!("Chaos wins"),
-                }
-                println!("Game Over!");
+        let (piece, col, row) = input.unwrap();
+        game = game.make_move(piece, col, row).expect("Illegal move!");
+        match game.get_status() {
+            GameStatus::InProgress => println!("{}", game),
+            GameStatus::OrderWins => {
+                println!("Order wins");
                 break;
             }
-            None => println!("{}", game),
+            GameStatus::ChaosWins => {
+                println!("Chaos wins");
+                break;
+            }
         };
         print!("{}[2J", 27 as char);
     }
