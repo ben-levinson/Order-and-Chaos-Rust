@@ -27,7 +27,9 @@ fn main() {
     let mut game = Game::new();
     let mut turn = false;
     loop {
+
         let input = read_input();
+
         if input.is_none() {
             break;
         }

@@ -76,6 +76,10 @@ impl Game {
         if (self.pieces_placed + 1) == self.size * self.size {
             return GameStatus::ChaosWins;
         }
+
+        //There are only 6 diagonals that allow for a win condition for Order,
+        //Use the coordinates of the last move to determine if the move is on
+        //one of these diagonals and if so, how many cells need to be checked
         let diag_min = min(col, row);
         let diag_search = match row as i64 - col as i64 {
             -1 => 5,
