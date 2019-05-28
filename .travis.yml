@@ -1,0 +1,22 @@
+language: rust
+dist: trusty
+
+branches:
+  except:
+    - master
+
+services:
+  - docker
+
+rust:
+  - stable
+
+cache: cargo
+
+before_script:
+  - rustup component add clippy
+
+script:
+  - cargo build
+  - cargo clippy --all-targets
+  - cargo test
