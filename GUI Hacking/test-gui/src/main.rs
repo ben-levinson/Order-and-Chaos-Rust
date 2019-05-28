@@ -8,7 +8,6 @@ extern crate glium;
 extern crate image;
 
 use glium::Surface;
-//use conrod_core::Color;
 
 mod support;
 
@@ -24,7 +23,6 @@ fn main() {
     let context = glium::glutin::ContextBuilder::new()
         .with_vsync(true)
         .with_multisampling(4);
-
     let display = glium::Display::new(window, context, &events_loop).unwrap();
     let display = support::GliumDisplayWinitWrapper(display);
 
@@ -92,35 +90,28 @@ fn main() {
 
 // Draw the Ui.
 fn set_widgets(ref mut ui: conrod_core::UiCell, ids: &mut Ids) {
-    use conrod_core::{color, widget, Colorable, Positionable, Sizeable, Widget};
+    use conrod_core::{color, widget, Colorable, Labelable, Positionable, Sizeable, Widget};
 
     // Construct our main `Canvas` tree.
     widget::Canvas::new().flow_down(&[
-        (ids.header, widget::Canvas::new().color(color::WHITE).pad_bottom(20.0)),
         (ids.body, widget::Canvas::new().length(1000.0).flow_right(&[
-            (ids.middle_column, widget::Canvas::new().color(color::WHITE)),//.color(color::ORANGE)),
+            (ids.middle_column, widget::Canvas::new().color(color::WHITE)),
         ])),
     ]).set(ids.master, ui);
-
-
-//    fn text(text: widget::Text) -> widget::Text { text.color(color::BLACK).font_size(36) }
 
     let footer_wh = ui.wh_of(ids.middle_column).unwrap();
     let mut elements = widget::Matrix::new(COLS, ROWS)
         .w_h(footer_wh[0], footer_wh[1])
         .mid_top_of(ids.middle_column)
         .set(ids.button_matrix, ui);
-
     while let Some(elem) = elements.next(ui) {
         let (r, c) = (elem.row, elem.col);
-//        let n = c + r * c;
-//        let luminance = n as f32 / (COLS * ROWS) as f32;
         let button = widget::Button::new().color(color::WHITE);
-
         for _click in elem.set(button, ui) {
             println!("Hey! {:?}", (r, c));
         }
     }
+
 
 }
 
@@ -156,5 +147,9 @@ widget_ids! {
         baz_label,
         button_matrix,
         bing,
+        bong,
     }
 }
+
+
+
