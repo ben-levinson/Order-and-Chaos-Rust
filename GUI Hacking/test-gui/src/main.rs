@@ -10,19 +10,65 @@ mod support;
 
 use glium::Surface;
 use std::string::{ToString};
+use std::borrow::{ToOwned};
 
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
+widget_ids! {
+    struct Ids {
+        canvas,
+        grid[],
+        button_matrix,
+        title,
+        button,
+        curr_piece,
+        toggle,
+        border_width,
+        reset_button,
+        curr_turn,
+        t,
+
+    }
+}
+
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
 enum CurrentTurn {
     Order,
     Chaos
 }
 
+impl CurrentTurn {
+    fn display(&self) -> String {
+        match self {
+            Order => "Order's Turn".to_owned(),
+            Chaos => "Chaos' Turn".to_owned(),
+        }
+    }
+}
+
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
+enum BoardState {
+    Empty,
+    X,
+    O,
+}
+
+impl BoardState {
+    pub fn display(&self) -> String {
+        match self {
+            BoardState::Empty => "".to_owned(),
+            BoardState::X => "X".to_owned(),
+            BoardState::O => "O".to_owned(),
+
+        }
+    }
+}
+
+
 struct BoardGUI {
     title_pad: f64,
     turn: CurrentTurn,
-    current_piece: bool,
+    current_piece: BoardState,
     piece_label: String,
-//    piece_matrix: [[String; 6]; 6],
+//    piece_matrix: [String; ROWS*COLS],
 }
 
 impl BoardGUI {
@@ -30,9 +76,9 @@ impl BoardGUI {
         BoardGUI {
             title_pad: 475.0,
             turn: CurrentTurn::Order,
-            current_piece: false,
-            piece_label: "X".to_string(),
-//            piece_matrix:
+            current_piece: BoardState::X,
+            piece_label: BoardState::X.display(),
+//            piece_matrix: [BoardState::Empty.display(); 36],
         }
     }
 
@@ -131,20 +177,7 @@ fn main() {
 // To make this easier, conrod provides the `widget_ids` macro. This macro generates a new type
 // with a unique `widget::Id` field for each identifier given in the list. See the `widget_ids!`
 // documentation for more details.
-widget_ids! {
-    struct Ids {
-        canvas,
-        button_matrix,
-        title,
-        button,
-        curr_piece,
-        toggle,
-        border_width,
-        reset_button,
-        curr_turn,
 
-    }
-}
 
 const ROWS: usize = 6;
 const COLS: usize = 6;
@@ -174,17 +207,41 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids) 
         .font_size(32)
         .set(ids.title, ui);
 
+//    for r in 0..ROWS {
+//        for c in 0..COLS {
+//            let button = widget::Button::new()
+//                .w_h(75.0, 75.0)
+//                .down(ids.curr_piece, 20.)
+//                .right(ids.curr_piece, -100.0)
+//                .color(color::WHITE)
+//                .border(1.)
+//                .label(&app.piece_label)
+//                .label_font_size(50)
+//                .set(ids.grid[r*COLS+c], ui);
+//        }
+//    }
+
     let mut elements = widget::Matrix::new(COLS, ROWS)
         .w_h(800., 800.)
         .align_middle_x()
         .set(ids.button_matrix, ui);
     while let Some(elem) = elements.next(ui) {
         let (r, c) = (elem.row, elem.col);
-        let board_button = widget::Button::new().color(color::WHITE);
+        let button = widget::Button::new()
+            .color(color::WHITE)
+            .label(&app.piece_label)
+            .label_font_size(50);
+//            .set(ids.game_button, ui);
+//        let board_button = widget::Button::new().color(color::WHITE);
 //        if board_button.was_clicked() {
 //            board_button.label(&app.piece_label).label_font_size(32);
 //        }
-        for _click in elem.set(board_button, ui) {
+        for _click in elem.set(button, ui) {
+            let text = widget::Text::new(&app.piece_label)
+                .mid_left()
+                .set(ids.t, ui);
+
+//            board_button.label(&app.piece_label);
             println!("Hey! {:?}", (r, c));
             if app.turn == CurrentTurn::Order {
                 app.turn = CurrentTurn::Chaos;
@@ -210,12 +267,12 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids) 
         .set(ids.button, ui);
 
     if button.was_clicked() {
-        if app.current_piece {
-            app.piece_label = "X".to_string();
+        if app.current_piece == BoardState::X {
+            app.current_piece = BoardState::O;
         } else {
-            app.piece_label = "O".to_string();
+            app.current_piece = BoardState::X;
         }
-        app.current_piece = !app.current_piece;
+        app.piece_label = app.current_piece.display();
     }
 
     let mut current_turn = "".to_string();
