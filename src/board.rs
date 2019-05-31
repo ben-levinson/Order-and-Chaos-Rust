@@ -66,6 +66,11 @@ impl Game {
         self.board[row * self.size + col].clone()
     }
 
+    pub fn reset(&mut self) -> Game {
+        self.board = vec![None; 36];
+        self.clone()
+    }
+
     fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<MoveType>) -> usize {
         let mut max_count = 0;
         let mut count = 0;

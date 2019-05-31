@@ -18,6 +18,7 @@ impl<'a> Player {
 }
 
 pub fn mini_max(game: Game, player: Player) -> Move {
+    
     Move::new(MoveType::O, 0, 0)
 }
 
