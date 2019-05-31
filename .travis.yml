@@ -14,5 +14,5 @@ before_script:
 
 script:
   - cargo build
-  - cargo clippy --all-targets
+#  - cargo clippy --all-targets
   - cargo test
