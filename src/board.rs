@@ -9,16 +9,31 @@ pub enum GameStatus {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Cell {
+pub enum MoveType {
     X,
     O,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Move {
+    piece_type: MoveType,
+    row: usize,
+    col: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BoardDirection {
+    Row,
+    Column,
+    Diagonal,
+    AntiDiagonal,
 }
 
 #[derive(Clone)]
 pub struct Game {
     size: usize,
     num_to_win: usize,
-    board: Vec<Option<Cell>>,
+    board: Vec<Option<MoveType>>,
     pieces_placed: usize,
     last_move: Option<(usize, usize)>,
 }
@@ -34,14 +49,14 @@ impl Game {
         }
     }
 
-    pub fn flat_index(&self, i: usize, j: usize) -> Option<Cell> {
+    pub fn flat_index(&self, i: usize, j: usize) -> Option<MoveType> {
         self.board[j * self.size + i].clone()
     }
 
-    fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<Cell>) -> usize {
+    fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<MoveType>) -> usize {
         let mut max_count = 0;
         let mut count = 0;
-        let mut cell_type = Cell::X;
+        let mut cell_type = MoveType::X;
         for i in 0..to_search {
             count = match f(i) {
                 Some(cell) => {
@@ -62,21 +77,7 @@ impl Game {
         max(count, max_count)
     }
 
-    pub fn get_status(&self) -> GameStatus {
-        // No move has been made yet (or the invarient is broken...)
-        let (col, row) = match self.last_move {
-            Some(pair) => pair,
-            None => return GameStatus::InProgress,
-        };
-        // Short-circuit if we can
-        if self.num_to_win > self.pieces_placed {
-            return GameStatus::InProgress;
-        }
-        // Could return Chaos victory earlier if Order cannot win
-        if (self.pieces_placed + 1) == self.size * self.size {
-            return GameStatus::ChaosWins;
-        }
-
+    pub fn count_direction(&self, direction: BoardDirection, row: usize, col: usize) -> usize {
         //There are only 6 diagonals that allow for a win condition for Order,
         //Use the coordinates of the last move to determine if the move is on
         //one of these diagonals and if so, how many cells need to be checked
@@ -94,38 +95,57 @@ impl Game {
             6 => 5,
             _ => 0,
         };
-        if false
-        // Check col
-        || Self::num_consecutive(self.size, &|j|
-            self.flat_index(col, j)) == self.num_to_win
-        // Check row
-        || Self::num_consecutive(self.size, &|i|
-            self.flat_index(i, row)) == self.num_to_win
-        // Check diagonal
-        || Self::num_consecutive(diag_search, &|i|
-            self.flat_index(col + i - diag_min, row + i - diag_min)) == self.num_to_win
-        // Check anti-diagonal
-        || Self::num_consecutive(anti_diag_search, &|i|
-            self.flat_index(col + i - anti_diag_min, row + anti_diag_min - i)) == self.num_to_win
+        match direction {
+            BoardDirection::Row => Self::num_consecutive(self.size, &|i| self.flat_index(i, row)),
+            BoardDirection::Column => {
+                Self::num_consecutive(self.size, &|j| self.flat_index(col, j))
+            }
+            BoardDirection::Diagonal => Self::num_consecutive(diag_search, &|i| {
+                self.flat_index(col + i - diag_min, row + i - diag_min)
+            }),
+            BoardDirection::AntiDiagonal => Self::num_consecutive(anti_diag_search, &|i| {
+                self.flat_index(col + i - anti_diag_min, row + anti_diag_min - i)
+            }),
+        }
+    }
+
+    pub fn get_status(&self) -> GameStatus {
+        // No move has been made yet (or the invarient is broken...)
+        let (col, row) = match self.last_move {
+            Some(pair) => pair,
+            None => return GameStatus::InProgress,
+        };
+        // Short-circuit if we can
+        if self.num_to_win > self.pieces_placed {
+            return GameStatus::InProgress;
+        }
+        // Could return Chaos victory earlier if Order cannot win
+        if (self.pieces_placed + 1) == self.size * self.size {
+            return GameStatus::ChaosWins;
+        }
+        if self.count_direction(BoardDirection::Row, row, col) == self.num_to_win
+            || self.count_direction(BoardDirection::Column, row, col) == self.num_to_win
+            || self.count_direction(BoardDirection::Diagonal, row, col) == self.num_to_win
+            || self.count_direction(BoardDirection::AntiDiagonal, row, col) == self.num_to_win
         {
             return GameStatus::OrderWins;
         }
         GameStatus::InProgress
     }
 
-    pub fn make_move(&self, piece: Cell, row: usize, col: usize) -> Option<Game> {
-        println!("Made move to {} {}", row, col);
-        if self.flat_index(col, row).is_some() {
+    pub fn make_move(&self, m: Move) -> Option<Game> {
+        println!("Made move to {} {}", m.row, m.col);
+        if self.flat_index(m.col, m.row).is_some() {
             None
         } else {
             let mut new_board = self.board.clone();
-            new_board[row * self.size + col] = Some(piece);
+            new_board[m.row * self.size + m.col] = Some(m.piece_type);
             Some(Game {
                 size: self.size,
                 num_to_win: self.num_to_win,
                 board: new_board,
                 pieces_placed: self.pieces_placed + 1,
-                last_move: Some((col, row)),
+                last_move: Some((m.col, m.row)),
             })
         }
     }
@@ -153,12 +173,12 @@ impl fmt::Display for Game {
 
 #[cfg(test)]
 mod test {
-    use super::{Cell, Game, GameStatus};
+    use super::{Game, GameStatus, MoveType};
 
     #[test]
     fn test_horizontal_win_left() {
         let mut game = Game::new();
-        let x = Cell::X;
+        let x = MoveType::X;
         game = game.make_move(x, 0, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 1, 0).unwrap();
@@ -173,7 +193,7 @@ mod test {
     #[test]
     fn test_horizontal_win_right() {
         let mut game = Game::new();
-        let x = Cell::X;
+        let x = MoveType::X;
         game = game.make_move(x, 5, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 4, 0).unwrap();
@@ -188,7 +208,7 @@ mod test {
     #[test]
     fn test_vertical_win_up() {
         let mut game = Game::new();
-        let x = Cell::X;
+        let x = MoveType::X;
         game = game.make_move(x, 1, 5).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 1, 4).unwrap();
@@ -203,7 +223,7 @@ mod test {
     #[test]
     fn test_vertical_win_down() {
         let mut game = Game::new();
-        let x = Cell::X;
+        let x = MoveType::X;
         game = game.make_move(x, 5, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 5, 1).unwrap();
@@ -221,7 +241,7 @@ mod test {
     #[test]
     fn test_diagonal_win() {
         let mut game = Game::new();
-        let x = Cell::O;
+        let x = MoveType::O;
         game = game.make_move(x, 0, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 1, 1).unwrap();
@@ -237,7 +257,7 @@ mod test {
     #[test]
     fn test_anti_diagonal_win() {
         let mut game = Game::new();
-        let x = Cell::O;
+        let x = MoveType::O;
         game = game.make_move(x, 4, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 2, 2).unwrap();
@@ -254,7 +274,7 @@ mod test {
     #[test]
     fn test_diagonal_win2() {
         let mut game = Game::new();
-        let x = Cell::O;
+        let x = MoveType::O;
         game = game.make_move(x, 1, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 2, 1).unwrap();
@@ -271,8 +291,8 @@ mod test {
     #[test]
     fn test_anti_np_win() {
         let mut game = Game::new();
-        let x = Cell::X;
-        let o = Cell::O;
+        let x = MoveType::X;
+        let o = MoveType::O;
         game = game.make_move(x, 1, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(o, 2, 1).unwrap();
