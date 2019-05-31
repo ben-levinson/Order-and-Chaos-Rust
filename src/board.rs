@@ -113,7 +113,8 @@ impl Game {
         GameStatus::InProgress
     }
 
-    pub fn make_move(&self, piece: Cell, col: usize, row: usize) -> Option<Game> {
+    pub fn make_move(&self, piece: Cell, row: usize, col: usize) -> Option<Game> {
+        println!("Made move to {} {}", row, col);
         if self.flat_index(col, row).is_some() {
             None
         } else {
@@ -152,7 +153,7 @@ impl fmt::Display for Game {
 
 #[cfg(test)]
 mod test {
-    use super::{Game, GameStatus, Cell};
+    use super::{Cell, Game, GameStatus};
 
     #[test]
     fn test_horizontal_win_left() {
@@ -232,7 +233,7 @@ mod test {
         game = game.make_move(x, 4, 4).unwrap();
         assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
-    
+
     #[test]
     fn test_anti_diagonal_win() {
         let mut game = Game::new();
@@ -288,4 +289,3 @@ mod test {
         assert_eq!(game.get_status(), GameStatus::InProgress);
     }
 }
-
