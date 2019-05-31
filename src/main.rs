@@ -128,7 +128,7 @@ impl<'a> BoardGUI<'a> {
 
     pub fn set_piece(&mut self, row: usize, col: usize, piece: &'a str, game: &Game) -> Game {
         let cell_type = if piece == "X" { MoveType::X } else { MoveType::O };
-        match game.make_move(MoveType::new(cell_type, row, col)) {
+        match game.make_move(cell_type, row, col) {
             Some(new_game) => {
                 self.piece_matrix[row * COLS + col] = piece;
                 return new_game;
@@ -153,9 +153,10 @@ impl<'a> BoardGUI<'a> {
         self.ai_opponent = ai_opponent
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, mut game: Game) -> Game {
         self.piece_matrix = [BoardState::Empty.display(); ROWS * COLS];
         self.turn = CurrentTurn::Order;
+        game.reset()
     }
 }
 
@@ -353,7 +354,7 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
         .set(ids.reset_button, ui);
 
     if new_game.was_clicked() {
-        app.reset();
+        new_game_board = app.reset(new_game_board);
     }
 
     widget::Text::new("     Against:")

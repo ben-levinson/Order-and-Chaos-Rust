@@ -34,6 +34,11 @@ impl Game {
         }
     }
 
+    pub fn reset(&mut self) -> Game {
+        self.board = vec![None; 36];
+        self.clone()
+    }
+
     pub fn flat_index(&self, i: usize, j: usize) -> Option<MoveType> {
         self.board[j * self.size + i].clone()
     }
