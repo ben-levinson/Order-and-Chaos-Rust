@@ -9,7 +9,7 @@ pub enum GameStatus {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Cell {
+pub enum MoveType {
     X,
     O,
 }
@@ -18,7 +18,7 @@ pub enum Cell {
 pub struct Game {
     size: usize,
     num_to_win: usize,
-    board: Vec<Option<Cell>>,
+    board: Vec<Option<MoveType>>,
     pieces_placed: usize,
     last_move: Option<(usize, usize)>,
 }
@@ -34,14 +34,14 @@ impl Game {
         }
     }
 
-    pub fn flat_index(&self, i: usize, j: usize) -> Option<Cell> {
+    pub fn flat_index(&self, i: usize, j: usize) -> Option<MoveType> {
         self.board[j * self.size + i].clone()
     }
 
-    fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<Cell>) -> usize {
+    fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<MoveType>) -> usize {
         let mut max_count = 0;
         let mut count = 0;
-        let mut cell_type = Cell::X;
+        let mut cell_type = MoveType::X;
         for i in 0..to_search {
             count = match f(i) {
                 Some(cell) => {
@@ -113,7 +113,7 @@ impl Game {
         GameStatus::InProgress
     }
 
-    pub fn make_move(&self, piece: Cell, row: usize, col: usize) -> Option<Game> {
+    pub fn make_move(&self, piece: MoveType, row: usize, col: usize) -> Option<Game> {
         println!("Made move to {} {}", row, col);
         if self.flat_index(col, row).is_some() {
             None
@@ -153,12 +153,12 @@ impl fmt::Display for Game {
 
 #[cfg(test)]
 mod test {
-    use super::{Cell, Game, GameStatus};
+    use super::{MoveType, Game, GameStatus};
 
     #[test]
     fn test_horizontal_win_left() {
         let mut game = Game::new();
-        let x = Cell::X;
+        let x = MoveType::X;
         game = game.make_move(x, 0, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 1, 0).unwrap();
@@ -173,7 +173,7 @@ mod test {
     #[test]
     fn test_horizontal_win_right() {
         let mut game = Game::new();
-        let x = Cell::X;
+        let x = MoveType::X;
         game = game.make_move(x, 5, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 4, 0).unwrap();
@@ -188,7 +188,7 @@ mod test {
     #[test]
     fn test_vertical_win_up() {
         let mut game = Game::new();
-        let x = Cell::X;
+        let x = MoveType::X;
         game = game.make_move(x, 1, 5).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 1, 4).unwrap();
@@ -203,7 +203,7 @@ mod test {
     #[test]
     fn test_vertical_win_down() {
         let mut game = Game::new();
-        let x = Cell::X;
+        let x = MoveType::X;
         game = game.make_move(x, 5, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 5, 1).unwrap();
@@ -221,7 +221,7 @@ mod test {
     #[test]
     fn test_diagonal_win() {
         let mut game = Game::new();
-        let x = Cell::O;
+        let x = MoveType::O;
         game = game.make_move(x, 0, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 1, 1).unwrap();
@@ -237,7 +237,7 @@ mod test {
     #[test]
     fn test_anti_diagonal_win() {
         let mut game = Game::new();
-        let x = Cell::O;
+        let x = MoveType::O;
         game = game.make_move(x, 4, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 2, 2).unwrap();
@@ -254,7 +254,7 @@ mod test {
     #[test]
     fn test_diagonal_win2() {
         let mut game = Game::new();
-        let x = Cell::O;
+        let x = MoveType::O;
         game = game.make_move(x, 1, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(x, 2, 1).unwrap();
@@ -271,8 +271,8 @@ mod test {
     #[test]
     fn test_anti_np_win() {
         let mut game = Game::new();
-        let x = Cell::X;
-        let o = Cell::O;
+        let x = MoveType::X;
+        let o = MoveType::O;
         game = game.make_move(x, 1, 0).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = game.make_move(o, 2, 1).unwrap();
