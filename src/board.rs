@@ -21,6 +21,16 @@ pub struct Move {
     col: usize,
 }
 
+impl Move {
+    pub fn new(piece_type: MoveType, row: usize, col: usize) -> Self {
+        Move {
+            piece_type: piece_type,
+            row: row,
+            col: col,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoardDirection {
     Row,
@@ -48,9 +58,12 @@ impl Game {
             last_move: None,
         }
     }
+    pub fn last_move(&self) -> Option<(usize, usize)> {
+        self.last_move.clone()
+    }
 
-    pub fn flat_index(&self, i: usize, j: usize) -> Option<MoveType> {
-        self.board[j * self.size + i].clone()
+    pub fn flat_index(&self, row: usize, col: usize) -> Option<MoveType> {
+        self.board[row * self.size + col].clone()
     }
 
     fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<MoveType>) -> usize {
@@ -96,17 +109,29 @@ impl Game {
             _ => 0,
         };
         match direction {
-            BoardDirection::Row => Self::num_consecutive(self.size, &|i| self.flat_index(i, row)),
+            BoardDirection::Row => Self::num_consecutive(self.size, &|i| self.flat_index(row, i)),
             BoardDirection::Column => {
-                Self::num_consecutive(self.size, &|j| self.flat_index(col, j))
+                Self::num_consecutive(self.size, &|i| self.flat_index(i, col))
             }
             BoardDirection::Diagonal => Self::num_consecutive(diag_search, &|i| {
-                self.flat_index(col + i - diag_min, row + i - diag_min)
+                self.flat_index(row + i - diag_min, col + i - diag_min)
             }),
             BoardDirection::AntiDiagonal => Self::num_consecutive(anti_diag_search, &|i| {
-                self.flat_index(col + i - anti_diag_min, row + anti_diag_min - i)
+                self.flat_index(row + anti_diag_min - i, col + i - anti_diag_min)
             }),
         }
+    }
+
+    pub fn open_indicies(&self) -> impl Iterator<Item = (usize, usize)> {
+        let mut open = Vec::new();
+        for row in 0..self.size {
+            for col in 0..self.size {
+                if self.flat_index(row, col).is_none() {
+                    open.push((row, col));
+                }
+            }
+        }
+        open.into_iter()
     }
 
     pub fn get_status(&self) -> GameStatus {
@@ -135,7 +160,7 @@ impl Game {
 
     pub fn make_move(&self, m: Move) -> Option<Game> {
         println!("Made move to {} {}", m.row, m.col);
-        if self.flat_index(m.col, m.row).is_some() {
+        if self.flat_index(m.row, m.col).is_some() {
             None
         } else {
             let mut new_board = self.board.clone();
@@ -158,7 +183,7 @@ impl fmt::Display for Game {
         for row in 0..self.size {
             write!(f, "{}", row)?;
             for col in 0..self.size {
-                if let Some(cell) = self.flat_index(col, row) {
+                if let Some(cell) = self.flat_index(row, col) {
                     write!(f, " | {:?} ", cell)?;
                 } else {
                     write!(f, " |   ")?;
@@ -173,68 +198,68 @@ impl fmt::Display for Game {
 
 #[cfg(test)]
 mod test {
-    use super::{Game, GameStatus, MoveType};
+    use super::{Game, GameStatus, Move, MoveType};
 
     #[test]
     fn test_horizontal_win_left() {
         let mut game = Game::new();
         let x = MoveType::X;
-        game = game.make_move(x, 0, 0).unwrap();
+        game = game.make_move(Move::new(x, 0, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 1, 0).unwrap();
+        game = game.make_move(Move::new(x, 1, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 2, 0).unwrap();
+        game = game.make_move(Move::new(x, 2, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 3, 0).unwrap();
+        game = game.make_move(Move::new(x, 3, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 4, 0).unwrap();
+        game = game.make_move(Move::new(x, 4, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
     #[test]
     fn test_horizontal_win_right() {
         let mut game = Game::new();
         let x = MoveType::X;
-        game = game.make_move(x, 5, 0).unwrap();
+        game = game.make_move(Move::new(x, 5, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 4, 0).unwrap();
+        game = game.make_move(Move::new(x, 4, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 3, 0).unwrap();
+        game = game.make_move(Move::new(x, 3, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 2, 0).unwrap();
+        game = game.make_move(Move::new(x, 2, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 1, 0).unwrap();
+        game = game.make_move(Move::new(x, 1, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
     #[test]
     fn test_vertical_win_up() {
         let mut game = Game::new();
         let x = MoveType::X;
-        game = game.make_move(x, 1, 5).unwrap();
+        game = game.make_move(Move::new(x, 1, 5)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 1, 4).unwrap();
+        game = game.make_move(Move::new(x, 1, 4)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 1, 3).unwrap();
+        game = game.make_move(Move::new(x, 1, 3)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 1, 2).unwrap();
+        game = game.make_move(Move::new(x, 1, 2)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 1, 1).unwrap();
+        game = game.make_move(Move::new(x, 1, 1)).unwrap();
         assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
     #[test]
     fn test_vertical_win_down() {
         let mut game = Game::new();
         let x = MoveType::X;
-        game = game.make_move(x, 5, 0).unwrap();
+        game = game.make_move(Move::new(x, 5, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 5, 1).unwrap();
+        game = game.make_move(Move::new(x, 5, 1)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 5, 2).unwrap();
+        game = game.make_move(Move::new(x, 5, 2)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 5, 3).unwrap();
+        game = game.make_move(Move::new(x, 5, 3)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 0, 0).unwrap();
+        game = game.make_move(Move::new(x, 0, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 5, 4).unwrap();
+        game = game.make_move(Move::new(x, 5, 4)).unwrap();
         assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
 
@@ -242,15 +267,15 @@ mod test {
     fn test_diagonal_win() {
         let mut game = Game::new();
         let x = MoveType::O;
-        game = game.make_move(x, 0, 0).unwrap();
+        game = game.make_move(Move::new(x, 0, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 1, 1).unwrap();
+        game = game.make_move(Move::new(x, 1, 1)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 2, 2).unwrap();
+        game = game.make_move(Move::new(x, 2, 2)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 3, 3).unwrap();
+        game = game.make_move(Move::new(x, 3, 3)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 4, 4).unwrap();
+        game = game.make_move(Move::new(x, 4, 4)).unwrap();
         assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
 
@@ -258,34 +283,34 @@ mod test {
     fn test_anti_diagonal_win() {
         let mut game = Game::new();
         let x = MoveType::O;
-        game = game.make_move(x, 4, 0).unwrap();
+        game = game.make_move(Move::new(x, 4, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 2, 2).unwrap();
+        game = game.make_move(Move::new(x, 2, 2)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 1, 3).unwrap();
+        game = game.make_move(Move::new(x, 1, 3)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 3, 1).unwrap();
+        game = game.make_move(Move::new(x, 3, 1)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 0, 0).unwrap();
+        game = game.make_move(Move::new(x, 0, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 0, 4).unwrap();
+        game = game.make_move(Move::new(x, 0, 4)).unwrap();
         assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
     #[test]
     fn test_diagonal_win2() {
         let mut game = Game::new();
         let x = MoveType::O;
-        game = game.make_move(x, 1, 0).unwrap();
+        game = game.make_move(Move::new(x, 1, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 2, 1).unwrap();
+        game = game.make_move(Move::new(x, 2, 1)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 3, 2).unwrap();
+        game = game.make_move(Move::new(x, 3, 2)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 4, 3).unwrap();
+        game = game.make_move(Move::new(x, 4, 3)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 0, 5).unwrap();
+        game = game.make_move(Move::new(x, 0, 5)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 5, 4).unwrap();
+        game = game.make_move(Move::new(x, 5, 4)).unwrap();
         assert_eq!(game.get_status(), GameStatus::OrderWins);
     }
     #[test]
@@ -293,19 +318,19 @@ mod test {
         let mut game = Game::new();
         let x = MoveType::X;
         let o = MoveType::O;
-        game = game.make_move(x, 1, 0).unwrap();
+        game = game.make_move(Move::new(x, 1, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(o, 2, 1).unwrap();
+        game = game.make_move(Move::new(o, 2, 1)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 3, 3).unwrap();
+        game = game.make_move(Move::new(x, 3, 3)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(o, 4, 3).unwrap();
+        game = game.make_move(Move::new(o, 4, 3)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(x, 0, 5).unwrap();
+        game = game.make_move(Move::new(x, 0, 5)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(o, 5, 4).unwrap();
+        game = game.make_move(Move::new(o, 5, 4)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(o, 3, 2).unwrap();
+        game = game.make_move(Move::new(o, 3, 2)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
     }
 }
