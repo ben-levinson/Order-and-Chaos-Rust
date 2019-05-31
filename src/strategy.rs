@@ -1,6 +1,7 @@
 use crate::board::{BoardDirection, Game, GameStatus, Move, MoveType};
 use rayon::prelude::*;
 use std::cmp::max;
+use std::num::{Float};
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Player {
@@ -15,14 +16,61 @@ impl<'a> Player {
             Player::Chaos => "Chaos",
         }
     }
+    pub fn other_player(&self) -> Self {
+        match self {
+            Player::Order => Player::Chaos,
+            Player::Chaos => Player::Order,
+        }
+    }
 }
 
-pub fn mini_max(game: Game, player: Player) -> Move {
-    
-    Move::new(MoveType::O, 0, 0)
+pub fn mini_max(game: Game, player: Player) -> Option<Move> {
+    if game.get_status() != GameStatus::InProgress {
+        return None;
+    }
+    let other_player = player.other_player();
+    let mut best_move = None;
+    let mut best_score = -Float::infinity();
+    for (row, col) in game.open_indicies() {
+        for &move_type in &[MoveType::X, MoveType::O] {
+            let curr_move = Move::new(move_type, row, col);
+            let curr_game = game.make_move(curr_move).unwrap();
+            let score = minimax_helper(3, curr_game, other_player);
+            if score > best_score {
+                best_score = score;
+                best_move = Some(curr_move);
+            }
+        }
+    }
+    best_move
 }
 
-fn order_eval(game: Game) -> isize {
+fn minimax_helper(depth: usize, game: Game, player: Player) -> f64 {
+    let eval = match player {
+        Player::Order => order_eval,
+        Player::Chaos => chaos_eval,
+    };
+    if depth == 0 {
+        return eval(game);
+    }
+    let mut best_score = -Float::infinity();
+    for (row, col) in game.open_indicies() {
+        for &move_type in &[MoveType::X, MoveType::O] {
+            let curr_move = Move::new(move_type, row, col);
+            let curr_game = match game.make_move(curr_move) {
+                Some(g) => g,
+                None => continue,
+            };
+            let score = minimax_helper(depth - 1, curr_game, player.other_player());
+            if score > best_score {
+                best_score = score;
+            }
+        }
+    }
+    return best_score;
+}
+
+fn order_eval(game: Game) -> f64 {
     let (col, row) = game
         .last_move()
         .expect("Eval should never be called on an empty board");
@@ -32,20 +80,20 @@ fn order_eval(game: Game) -> isize {
         game.count_direction(BoardDirection::Diagonal, row, col),
         game.count_direction(BoardDirection::AntiDiagonal, row, col),
     ];
-    let mut score = 0;
+    let mut score = 0.;
     for count in counts {
         score = match count {
-            5 => score + 100,
-            4 => score + 25,
-            3 => score + 10,
-            2 => score + 5,
+            5 => score + 100.,
+            4 => score + 25.,
+            3 => score + 10.,
+            2 => score + 5.,
             _ => score,
         }
     }
     score
 }
 
-fn chaos_eval(game: Game) -> isize {
+fn chaos_eval(game: Game) -> f64 {
     if game.get_status() == GameStatus::ChaosWins {
         return 100;
     }
