@@ -1,62 +1,4 @@
-//use project::board::{Cell, Game, GameStatus};
-//use std::io::{self, BufRead};
-//
-//fn read_input() -> Option<(Cell, usize, usize)> {
-//    let mut buffer = String::new();
-//
-//    let user_input = io::stdin().lock().read_line(&mut buffer);
-//    if let Ok(n) = user_input {
-//        if n == 0 {
-//            return None;
-//        }
-//    }
-//
-//    let mut wh = buffer.split_whitespace();
-//    let piece = wh.next().unwrap();
-//    //            println!("piece {} == x {}", piece, piece == "x");
-//    if piece != "x" && piece != "o" {
-//        panic!("ERROR");
-//    }
-//    let row = wh.next().unwrap().parse::<usize>().unwrap();
-//    let col = wh.next().unwrap().parse::<usize>().unwrap();
-//    let cell_type = if piece == "x" { Cell::X } else { Cell::O };
-//    Some((cell_type, col, row))
-//}
-//
-//fn main() {
-//    let mut game = Game::new();
-//    let mut turn = false;
-//    loop {
-//        let input = read_input();
-//
-//        if input.is_none() {
-//            break;
-//        }
-//        if turn {
-//            println!("Order's turn");
-//            turn = !turn;
-//        } else {
-//            println!("Chaos' turn");
-//            turn = !turn;
-//        }
-//        let (piece, col, row) = input.unwrap();
-//        game = game.make_move(piece, col, row).expect("Illegal move!");
-//        match game.get_status() {
-//            GameStatus::InProgress => println!("{}", game),
-//            GameStatus::OrderWins => {
-//                println!("Order wins");
-//                break;
-//            }
-//            GameStatus::ChaosWins => {
-//                println!("Chaos wins");
-//                break;
-//            }
-//        };
-//        print!("{}[2J", 27 as char);
-//    }
-//}
-
-use project::board::{Cell, Game, GameStatus};
+use project::board::{MoveType, Game, GameStatus};
 
 #[macro_use]
 extern crate conrod_core;
@@ -97,8 +39,8 @@ enum CurrentTurn {
 impl<'a> CurrentTurn {
     fn display(&self) -> &'a str {
         match self {
-            CurrentTurn::Order => "Order", //.to_owned(),
-            CurrentTurn::Chaos => "Chaos", //.to_owned(),
+            CurrentTurn::Order => "Order",
+            CurrentTurn::Chaos => "Chaos",
         }
     }
 }
@@ -184,10 +126,15 @@ impl<'a> BoardGUI<'a> {
         self.piece_matrix
     }
 
-    pub fn set_piece(&mut self, row: usize, col: usize, piece: &'a str, mut game: &Game) -> Game {
-        let cell_type = if piece == "X" { Cell::X } else { Cell::O };
-        self.piece_matrix[row * COLS + col] = piece;
-        game.make_move(cell_type, row, col).unwrap()
+    pub fn set_piece(&mut self, row: usize, col: usize, piece: &'a str, game: &Game) -> Game {
+        let cell_type = if piece == "X" { MoveType::X } else { MoveType::O };
+        match game.make_move(MoveType::new(cell_type, row, col)) {
+            Some(new_game) => {
+                self.piece_matrix[row * COLS + col] = piece;
+                return new_game;
+            },
+            None => game.clone()
+        }
     }
 
     pub fn opponent(&self) -> Opponent {
@@ -283,7 +230,7 @@ fn main() {
         // We'll set all our widgets in a single function called `set_widgets`.
         {
             let mut ui = ui.set_widgets();
-            set_widgets(&mut ui, &mut app, &mut ids, game.clone());
+            game = set_widgets(&mut ui, &mut app, &mut ids, game);
         }
 
         // Render the `Ui` and then display it on the screen.
@@ -307,16 +254,21 @@ fn main() {
 const ROWS: usize = 6;
 const COLS: usize = 6;
 
+fn flat_index(row: usize, col: usize) -> usize {
+    row*COLS + col
+}
+
 /// Set all `Widget`s within the User Interface.
 ///
 /// The first time this gets called, each `Widget`'s `State` will be initialised and cached within
 /// the `Ui` at their given indices. Every other time this get called, the `Widget`s will avoid any
 /// allocations by updating the pre-existing cached state. A new graphical `Element` is only
 /// retrieved from a `Widget` in the case that it's `State` has changed in some way.
-fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, mut game: Game) {
+fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, game: Game) -> Game {
     use conrod_core::{
         color, widget, Borderable, Colorable, Labelable, Positionable, Sizeable, Widget,
     };
+    let mut new_game_board = game.clone();
 
     widget::Canvas::new()
         .border(0.)
@@ -338,12 +290,12 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
         let (r, c) = (elem.row, elem.col);
         let button = widget::Button::new()
             .color(color::WHITE)
-            .label(&app.piece_matrix()[r * COLS + c])
+            .label(&app.piece_matrix()[flat_index(r,c)])
             .label_font_size(50);
 
         for _click in elem.set(button, ui) {
-            if app.piece_matrix()[r * COLS + c] == BoardState::Empty.display() {
-                game = app.set_piece(r, c, app.current_piece().display(), &game);
+            if app.piece_matrix()[flat_index(r,c)] == BoardState::Empty.display() {
+                new_game_board = app.set_piece(r, c, app.current_piece().display(), &game);
             }
 
             if app.turn() == CurrentTurn::Order {
@@ -378,11 +330,11 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
         app.set_piece_label(app.current_piece().display());
     }
 
-    let mut current_turn = ""; //.to_string();
+    let current_turn;// = "";
     if app.turn() == CurrentTurn::Order {
-        current_turn = "Order's Turn   "; //.to_string();
+        current_turn = "Order's Turn   ";
     } else {
-        current_turn = "Chaos' Turn   "; //.to_string();
+        current_turn = "Chaos' Turn   ";
     }
 
     widget::Text::new(current_turn)
@@ -444,8 +396,7 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
             }
         }
     }
-    println!("{}", game);
-    let a = game.get_status();
+
     if game.get_status() == GameStatus::ChaosWins {
         widget::Text::new("Chaos Wins!")
             .align_bottom_of(ids.canvas)
@@ -460,6 +411,8 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
             .font_size(50)
             .set(ids.winner, ui);
     }
+
+    new_game_board
 
 }
 
