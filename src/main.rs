@@ -186,8 +186,13 @@ impl<'a> BoardGUI<'a> {
 
     pub fn set_piece(&mut self, row: usize, col: usize, piece: &'a str, mut game: &Game) -> Game {
         let cell_type = if piece == "X" { Cell::X } else { Cell::O };
-        self.piece_matrix[row * COLS + col] = piece;
-        game.make_move(cell_type, row, col).unwrap()
+        match game.make_move(cell_type, row, col) {
+            Some(new_game) => {
+                self.piece_matrix[row * COLS + col] = piece;
+                return new_game;
+            },
+            None => game.clone()
+        }
     }
 
     pub fn opponent(&self) -> Opponent {
@@ -283,7 +288,7 @@ fn main() {
         // We'll set all our widgets in a single function called `set_widgets`.
         {
             let mut ui = ui.set_widgets();
-            set_widgets(&mut ui, &mut app, &mut ids, game.clone());
+            game = set_widgets(&mut ui, &mut app, &mut ids, game);
         }
 
         // Render the `Ui` and then display it on the screen.
@@ -313,10 +318,11 @@ const COLS: usize = 6;
 /// the `Ui` at their given indices. Every other time this get called, the `Widget`s will avoid any
 /// allocations by updating the pre-existing cached state. A new graphical `Element` is only
 /// retrieved from a `Widget` in the case that it's `State` has changed in some way.
-fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, mut game: Game) {
+fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, game: Game) -> Game {
     use conrod_core::{
         color, widget, Borderable, Colorable, Labelable, Positionable, Sizeable, Widget,
     };
+    let mut new_game_board = game.clone();
 
     widget::Canvas::new()
         .border(0.)
@@ -343,7 +349,7 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
 
         for _click in elem.set(button, ui) {
             if app.piece_matrix()[r * COLS + c] == BoardState::Empty.display() {
-                game = app.set_piece(r, c, app.current_piece().display(), &game);
+                new_game_board = app.set_piece(r, c, app.current_piece().display(), &game);
             }
 
             if app.turn() == CurrentTurn::Order {
@@ -445,7 +451,6 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
         }
     }
     println!("{}", game);
-    let a = game.get_status();
     if game.get_status() == GameStatus::ChaosWins {
         widget::Text::new("Chaos Wins!")
             .align_bottom_of(ids.canvas)
@@ -460,6 +465,8 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
             .font_size(50)
             .set(ids.winner, ui);
     }
+
+    new_game_board
 
 }
 
