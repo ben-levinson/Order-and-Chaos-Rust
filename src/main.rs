@@ -1,4 +1,5 @@
-use project::board::{MoveType, Game, GameStatus, Move};
+use project::board::{Game, GameStatus, Move, MoveType};
+use project::strategy::Player;
 
 #[macro_use]
 extern crate conrod_core;
@@ -12,6 +13,11 @@ mod support;
 
 use glium::Surface;
 
+const ROWS: usize = 6;
+const COLS: usize = 6;
+
+///Each conrod widget needs a unique identifier to track state for each update. The widgets_ids! macro
+/// defines these ids
 widget_ids! {
     struct Ids {
         canvas,
@@ -27,21 +33,6 @@ widget_ids! {
         opponent,
         against,
         winner,
-    }
-}
-
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
-enum CurrentTurn {
-    Order,
-    Chaos,
-}
-
-impl<'a> CurrentTurn {
-    fn display(&self) -> &'a str {
-        match self {
-            CurrentTurn::Order => "Order",
-            CurrentTurn::Chaos => "Chaos",
-        }
     }
 }
 
@@ -78,88 +69,107 @@ impl<'a> Opponent {
 }
 
 struct BoardGUI<'a> {
-    turn: CurrentTurn,
+    turn: Player,
     current_piece: BoardState,
     piece_label: &'a str,
     piece_matrix: [&'a str; ROWS * COLS],
     opponent: Opponent,
-    ai_opponent: CurrentTurn,
+    ai_opponent: Player,
 }
 
 impl<'a> BoardGUI<'a> {
     fn new() -> Self {
         BoardGUI {
-            turn: CurrentTurn::Order,
+            turn: Player::Order,
             current_piece: BoardState::X,
             piece_label: BoardState::X.display(),
             piece_matrix: [BoardState::Empty.display(); ROWS * COLS],
             opponent: Opponent::Human,
-            ai_opponent: CurrentTurn::Chaos,
+            ai_opponent: Player::Chaos,
         }
     }
 
-    pub fn turn(&self) -> CurrentTurn {
+    ///Get the current player
+    pub fn turn(&self) -> Player {
         self.turn
     }
 
-    pub fn set_turn(&mut self, turn: CurrentTurn) {
+    ///Change the current player
+    pub fn set_turn(&mut self, turn: Player) {
         self.turn = turn
     }
 
+    ///Get the current piece
     pub fn current_piece(&self) -> BoardState {
         self.current_piece
     }
 
+    ///Change the current piece
     pub fn set_current_piece(&mut self, piece: BoardState) {
         self.current_piece = piece
     }
 
+    ///Get the label to display for the piece
     pub fn piece_label(&self) -> &'a str {
         self.piece_label
     }
 
+    ///Set the piece label
     pub fn set_piece_label(&mut self, label: &'a str) {
         self.piece_label = label
     }
 
+    ///The matrix representing the board
     pub fn piece_matrix(&self) -> [&'a str; ROWS * COLS] {
         self.piece_matrix
     }
 
+    ///Set a piece in a specific location in the board
     pub fn set_piece(&mut self, row: usize, col: usize, piece: &'a str, game: &Game) -> Game {
-        let cell_type = if piece == "X" { MoveType::X } else { MoveType::O };
+        let cell_type = if piece == "X" {
+            MoveType::X
+        } else {
+            MoveType::O
+        };
         match game.make_move(Move::new(cell_type, row, col)) {
             Some(new_game) => {
                 self.piece_matrix[row * COLS + col] = piece;
                 return new_game;
-            },
-            None => game.clone()
+            }
+            None => game.clone(),
         }
     }
 
+    ///Get the opponent
     pub fn opponent(&self) -> Opponent {
         self.opponent
     }
 
+    ///Set the opponent
     pub fn set_opponent(&mut self, opponent: Opponent) {
         self.opponent = opponent
     }
 
-    pub fn ai_opponent(&self) -> CurrentTurn {
+    ///When the opponent is the AI, get the type of player for the AI
+    pub fn ai_opponent(&self) -> Player {
         self.ai_opponent
     }
 
-    pub fn set_ai_opponent(&mut self, ai_opponent: CurrentTurn) {
+    ///Set the type of AI opponent
+    pub fn set_ai_opponent(&mut self, ai_opponent: Player) {
         self.ai_opponent = ai_opponent
     }
 
+    ///Create a new GUI game. Resets the internal state of the library.
     pub fn reset(&mut self, mut game: Game) -> Game {
         self.piece_matrix = [BoardState::Empty.display(); ROWS * COLS];
-        self.turn = CurrentTurn::Order;
+        self.turn = Player::Order;
         game.reset()
     }
 }
 
+///With modifications to adjust to the purposes of our game, the main function is the
+///same as given in conrod example programs.
 fn main() {
     let mut game = Game::new();
     const WIDTH: u32 = 1200;
@@ -216,10 +226,10 @@ fn main() {
                     glium::glutin::WindowEvent::CloseRequested
                     | glium::glutin::WindowEvent::KeyboardInput {
                         input:
-                        glium::glutin::KeyboardInput {
-                            virtual_keycode: Some(glium::glutin::VirtualKeyCode::Escape),
-                            ..
-                        },
+                            glium::glutin::KeyboardInput {
+                                virtual_keycode: Some(glium::glutin::VirtualKeyCode::Escape),
+                                ..
+                            },
                         ..
                     } => break 'main,
                     _ => (),
@@ -245,18 +255,9 @@ fn main() {
     }
 }
 
-// In conrod, each widget must have its own unique identifier so that the `Ui` can keep track of
-// its state between updates.
-//
-// To make this easier, conrod provides the `widget_ids` macro. This macro generates a new type
-// with a unique `widget::Id` field for each identifier given in the list. See the `widget_ids!`
-// documentation for more details.
-
-const ROWS: usize = 6;
-const COLS: usize = 6;
-
+///Helper function to compute index into linearized 2d array
 fn flat_index(row: usize, col: usize) -> usize {
-    row*COLS + col
+    row * COLS + col
 }
 
 /// Set all `Widget`s within the User Interface.
@@ -265,7 +266,12 @@ fn flat_index(row: usize, col: usize) -> usize {
 /// the `Ui` at their given indices. Every other time this get called, the `Widget`s will avoid any
 /// allocations by updating the pre-existing cached state. A new graphical `Element` is only
 /// retrieved from a `Widget` in the case that it's `State` has changed in some way.
-fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, game: Game) -> Game {
+fn set_widgets(
+    ui: &mut conrod_core::UiCell,
+    app: &mut BoardGUI,
+    ids: &mut Ids,
+    game: Game,
+) -> Game {
     use conrod_core::{
         color, widget, Borderable, Colorable, Labelable, Positionable, Sizeable, Widget,
     };
@@ -291,18 +297,18 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
         let (r, c) = (elem.row, elem.col);
         let button = widget::Button::new()
             .color(color::WHITE)
-            .label(&app.piece_matrix()[flat_index(r,c)])
+            .label(&app.piece_matrix()[flat_index(r, c)])
             .label_font_size(50);
 
         for _click in elem.set(button, ui) {
-            if app.piece_matrix()[flat_index(r,c)] == BoardState::Empty.display() {
+            if app.piece_matrix()[flat_index(r, c)] == BoardState::Empty.display() {
                 new_game_board = app.set_piece(r, c, app.current_piece().display(), &game);
             }
 
-            if app.turn() == CurrentTurn::Order {
-                app.set_turn(CurrentTurn::Chaos);
+            if app.turn() == Player::Order {
+                app.set_turn(Player::Chaos);
             } else {
-                app.set_turn(CurrentTurn::Order);
+                app.set_turn(Player::Order);
             }
         }
     }
@@ -331,8 +337,8 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
         app.set_piece_label(app.current_piece().display());
     }
 
-    let current_turn;// = "";
-    if app.turn() == CurrentTurn::Order {
+    let current_turn;
+    if app.turn() == Player::Order {
         current_turn = "Order's Turn   ";
     } else {
         current_turn = "Chaos' Turn   ";
@@ -390,10 +396,10 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
             .set(ids.ai_toggle, ui);
 
         if opponent_ai_toggle.was_clicked() {
-            if app.ai_opponent() == CurrentTurn::Order {
-                app.set_ai_opponent(CurrentTurn::Chaos);
+            if app.ai_opponent() == Player::Order {
+                app.set_ai_opponent(Player::Chaos);
             } else {
-                app.set_ai_opponent(CurrentTurn::Order);
+                app.set_ai_opponent(Player::Order);
             }
         }
     }
@@ -404,7 +410,6 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
             .right(350.)
             .font_size(50)
             .set(ids.winner, ui);
-
     } else if game.get_status() == GameStatus::OrderWins {
         widget::Text::new("Order Wins!")
             .align_bottom_of(ids.canvas)
@@ -414,6 +419,4 @@ fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids, 
     }
 
     new_game_board
-
 }
-

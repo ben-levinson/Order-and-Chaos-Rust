@@ -164,7 +164,7 @@ impl Game {
     }
 
     pub fn make_move(&self, m: Move) -> Option<Game> {
-        println!("Made move to {} {}", m.row, m.col);
+        //        println!("Made move to {} {}", m.row, m.col);
         if self.flat_index(m.row, m.col).is_some() {
             None
         } else {
