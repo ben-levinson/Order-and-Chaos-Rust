@@ -1,5 +1,5 @@
 use project::board::{Game, GameStatus, Move, MoveType};
-use project::strategy::Player;
+use project::strategy::{Player, ai_move};
 
 #[macro_use]
 extern crate conrod_core;
@@ -12,6 +12,9 @@ extern crate glium;
 mod support;
 
 use glium::Surface;
+use conrod_core::{
+    color, widget, Borderable, Colorable, Labelable, Positionable, Sizeable, Widget,
+};
 
 const ROWS: usize = 6;
 const COLS: usize = 6;
@@ -75,6 +78,7 @@ struct BoardGUI<'a> {
     piece_matrix: [&'a str; ROWS * COLS],
     opponent: Opponent,
     ai_opponent: Player,
+    game: Game,
 }
 
 impl<'a> BoardGUI<'a> {
@@ -86,7 +90,16 @@ impl<'a> BoardGUI<'a> {
             piece_matrix: [BoardState::Empty.display(); ROWS * COLS],
             opponent: Opponent::Human,
             ai_opponent: Player::Chaos,
+            game: Game::new(),
         }
+    }
+
+    pub fn game(&self) -> &Game {
+        &self.game
+    }
+
+    pub fn update_game(&mut self, new_game: Game) {
+        self.game = new_game;
     }
 
     ///Get the current player
@@ -124,20 +137,47 @@ impl<'a> BoardGUI<'a> {
         self.piece_matrix
     }
 
+    pub fn set_piece_matrix(&mut self, game: &Game) {
+        for row in 0..game.size() {
+            for col in 0..game.size() {
+                match game.flat_index(row, col) {
+                    Some(cell) => match cell {
+                        MoveType::X => {
+                            self.piece_matrix[flat_index(row, col)] = "X";
+                        }
+                        MoveType::O => {
+                            self.piece_matrix[flat_index(row, col)] = "O";
+                        }
+                    }
+                    None => {
+                        self.piece_matrix[flat_index(row, col)] = "";
+                    }
+                }
+            }
+        }
+    }
+
     ///Set a piece in a specific location in the board
-    pub fn set_piece(&mut self, row: usize, col: usize, piece: &'a str, game: &Game) -> Game {
+    pub fn set_piece(&mut self, row: usize, col: usize, piece: &'a str) {
         let cell_type = if piece == "X" {
             MoveType::X
         } else {
             MoveType::O
         };
-        match game.make_move(Move::new(cell_type, row, col)) {
-            Some(new_game) => {
-                self.piece_matrix[row * COLS + col] = piece;
-                return new_game;
-            }
-            None => game.clone(),
+        if let Some(new_game) = self.game.make_move(Move::new(cell_type, row, col)) {
+            self.set_piece_matrix(&new_game);
+            self.update_game(new_game);
         }
+        // match self.game.make_move(Move::new(cell_type, row, col)) {
+            
+        //     Some(new_game) => {
+        //         self.set_piece_matrix(&new_game);
+        //         self.update_game(new_game)
+        //         // self.piece_matrix[row * COLS + col] = piece;
+                
+        //     }
+        //     None => _;//game.clone(),
+        // }
     }
 
     ///Get the opponent
@@ -155,23 +195,27 @@ impl<'a> BoardGUI<'a> {
         self.ai_opponent
     }
 
+    //The opponent is an AI
+    pub fn opponent_is_ai(&self) -> bool {
+        self.opponent == Opponent::AI
+    }
+
     ///Set the type of AI opponent
     pub fn set_ai_opponent(&mut self, ai_opponent: Player) {
         self.ai_opponent = ai_opponent
     }
 
     ///Create a new GUI game. Resets the internal state of the library.
-    pub fn reset(&mut self, mut game: Game) -> Game {
+    pub fn reset(&mut self) {
         self.piece_matrix = [BoardState::Empty.display(); ROWS * COLS];
         self.turn = Player::Order;
-        game.reset()
+        self.game.reset();
     }
 }
 
 ///With modifications to adjust to the purposes of our game, the main function is the
 ///same as given in conrod example programs.
 fn main() {
-    let mut game = Game::new();
     const WIDTH: u32 = 1200;
     const HEIGHT: u32 = 1000;
 
@@ -208,10 +252,15 @@ fn main() {
 
     // Our demonstration app that we'll control with our GUI.
     let mut app = BoardGUI::new();
+    let mut piece_was_placed = false;
+
+    if app.opponent_is_ai() && app.ai_opponent() == Player::Order {
+        handle_ai_move(&mut app);
+    }
 
     // Poll events from the window.
     let mut event_loop = support::EventLoop::new();
-    'main: loop {
+    'main : loop {
         // Handle all events.
         for event in event_loop.next(&mut events_loop) {
             // Use the `winit` backend feature to convert the winit event to a conrod one.
@@ -238,10 +287,21 @@ fn main() {
             }
         }
 
-        // We'll set all our widgets in a single function called `set_widgets`.
+        // We'll set all our widgets
         {
             let mut ui = ui.set_widgets();
-            game = set_widgets(&mut ui, &mut app, &mut ids, game);
+            // Handle pieces placed on the previous loop iteration to allow time
+            // for the changes to be displayed
+            if app.opponent_is_ai() && piece_was_placed {
+                handle_ai_move(&mut app);
+            } else if piece_was_placed {
+                app.set_turn(app.turn().other_player());
+            }
+            // Note, functions MUST be called in EXACTLY this order. Blame conrod.
+            setup_canvas(&mut ui, &mut ids);
+            piece_was_placed = handle_board_clicks(&mut ui, &mut app, &mut ids);
+            handle_piece_toggle(&mut ui, &mut app, &mut ids);
+            set_widgets(&mut ui, &mut app, &mut ids);
         }
 
         // Render the `Ui` and then display it on the screen.
@@ -260,23 +320,13 @@ fn flat_index(row: usize, col: usize) -> usize {
     row * COLS + col
 }
 
-/// Set all `Widget`s within the User Interface.
-///
-/// The first time this gets called, each `Widget`'s `State` will be initialised and cached within
-/// the `Ui` at their given indices. Every other time this get called, the `Widget`s will avoid any
-/// allocations by updating the pre-existing cached state. A new graphical `Element` is only
-/// retrieved from a `Widget` in the case that it's `State` has changed in some way.
-fn set_widgets(
-    ui: &mut conrod_core::UiCell,
-    app: &mut BoardGUI,
-    ids: &mut Ids,
-    game: Game,
-) -> Game {
-    use conrod_core::{
-        color, widget, Borderable, Colorable, Labelable, Positionable, Sizeable, Widget,
-    };
-    let mut new_game_board = game.clone();
+fn handle_ai_move(app: &mut BoardGUI) {
+    let new_game = ai_move(app.game(), app.ai_opponent());
+    app.set_piece_matrix(&new_game);
+    app.update_game(new_game);
+}
 
+fn setup_canvas(ui: &mut conrod_core::UiCell, ids: &mut Ids) {
     widget::Canvas::new()
         .border(0.)
         .pad(30.0)
@@ -288,7 +338,10 @@ fn set_widgets(
         .top_left_with_margins_on(ids.canvas, 0.0, 475.)
         .font_size(32)
         .set(ids.title, ui);
+}
 
+fn handle_board_clicks(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids) -> bool {
+    let mut result = false;
     let mut elements = widget::Matrix::new(COLS, ROWS)
         .w_h(800., 800.)
         .align_middle_x()
@@ -302,17 +355,15 @@ fn set_widgets(
 
         for _click in elem.set(button, ui) {
             if app.piece_matrix()[flat_index(r, c)] == BoardState::Empty.display() {
-                new_game_board = app.set_piece(r, c, app.current_piece().display(), &game);
+                app.set_piece(r, c, app.current_piece().display());
             }
-
-            if app.turn() == Player::Order {
-                app.set_turn(Player::Chaos);
-            } else {
-                app.set_turn(Player::Order);
-            }
+            result = true;
         }
     }
+    result
+}
 
+fn handle_piece_toggle(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids) {
     widget::Text::new("Current piece is:")
         .mid_right()
         .font_size(16)
@@ -336,7 +387,19 @@ fn set_widgets(
         }
         app.set_piece_label(app.current_piece().display());
     }
+}
 
+/// Set all `Widget`s within the User Interface.
+///
+/// The first time this gets called, each `Widget`'s `State` will be initialised and cached within
+/// the `Ui` at their given indices. Every other time this get called, the `Widget`s will avoid any
+/// allocations by updating the pre-existing cached state. A new graphical `Element` is only
+/// retrieved from a `Widget` in the case that it's `State` has changed in some way.
+fn set_widgets(
+    ui: &mut conrod_core::UiCell,
+    app: &mut BoardGUI,
+    ids: &mut Ids,
+) {
     let current_turn;
     if app.turn() == Player::Order {
         current_turn = "Order's Turn   ";
@@ -360,7 +423,7 @@ fn set_widgets(
         .set(ids.reset_button, ui);
 
     if new_game.was_clicked() {
-        new_game_board = app.reset(new_game_board);
+        app.reset();
     }
 
     widget::Text::new("     Against:")
@@ -404,19 +467,17 @@ fn set_widgets(
         }
     }
 
-    if game.get_status() == GameStatus::ChaosWins {
+    if app.game().get_status() == GameStatus::ChaosWins {
         widget::Text::new("Chaos Wins!")
             .align_bottom_of(ids.canvas)
             .right(350.)
             .font_size(50)
             .set(ids.winner, ui);
-    } else if game.get_status() == GameStatus::OrderWins {
+    } else if app.game().get_status() == GameStatus::OrderWins {
         widget::Text::new("Order Wins!")
             .align_bottom_of(ids.canvas)
             .right(350.)
             .font_size(50)
             .set(ids.winner, ui);
     }
-
-    new_game_board
 }
