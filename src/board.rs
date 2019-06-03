@@ -66,9 +66,8 @@ impl Game {
         self.board[row * self.size + col].clone()
     }
 
-    pub fn reset(&mut self) -> Game {
-        self.board = vec![None; 36];
-        self.clone()
+    pub fn size(&self) -> usize {
+        self.size
     }
 
     fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<MoveType>) -> usize {
@@ -150,7 +149,7 @@ impl Game {
             return GameStatus::InProgress;
         }
         // Could return Chaos victory earlier if Order cannot win
-        if (self.pieces_placed + 1) == self.size * self.size {
+        if self.pieces_placed == self.size * self.size {
             return GameStatus::ChaosWins;
         }
         if self.count_direction(BoardDirection::Row, row, col) == self.num_to_win

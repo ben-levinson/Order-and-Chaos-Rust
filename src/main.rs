@@ -209,7 +209,7 @@ impl<'a> BoardGUI<'a> {
     pub fn reset(&mut self) {
         self.piece_matrix = [BoardState::Empty.display(); ROWS * COLS];
         self.turn = Player::Order;
-        self.game.reset();
+        self.game = Game::new();
     }
 }
 
@@ -321,9 +321,11 @@ fn flat_index(row: usize, col: usize) -> usize {
 }
 
 fn handle_ai_move(app: &mut BoardGUI) {
-    let new_game = ai_move(app.game(), app.ai_opponent());
-    app.set_piece_matrix(&new_game);
-    app.update_game(new_game);
+    if app.game().get_status() == GameStatus::InProgress {
+        let new_game = ai_move(app.game(), app.ai_opponent());
+        app.set_piece_matrix(&new_game);
+        app.update_game(new_game);
+    }
 }
 
 fn setup_canvas(ui: &mut conrod_core::UiCell, ids: &mut Ids) {
@@ -354,10 +356,12 @@ fn handle_board_clicks(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &m
             .label_font_size(50);
 
         for _click in elem.set(button, ui) {
-            if app.piece_matrix()[flat_index(r, c)] == BoardState::Empty.display() {
-                app.set_piece(r, c, app.current_piece().display());
+            if app.game().get_status() == GameStatus::InProgress {
+                if app.piece_matrix()[flat_index(r, c)] == BoardState::Empty.display() {
+                    app.set_piece(r, c, app.current_piece().display());
+                }
+                result = true;
             }
-            result = true;
         }
     }
     result

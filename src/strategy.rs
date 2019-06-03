@@ -23,23 +23,29 @@ impl<'a> Player {
     }
 }
 
-pub fn ai_move(game: Game, player: Player) -> Game {
-    let best_move = mini_max(game.clone(), player).unwrap();
-    game.make_move(best_move).unwrap()
+pub fn ai_move(game: &Game, player: Player) -> Game {
+    let best_move = mini_max(&game, player).unwrap();
+    match game.make_move(best_move) {
+        Some(g) => g,
+        None => {
+            println!("Illegal move");
+            unreachable!();
+        }
+    }
 }
 
-pub fn mini_max(game: Game, player: Player) -> Option<Move> {
+pub fn mini_max(game: &Game, player: Player) -> Option<Move> {
     if game.get_status() != GameStatus::InProgress {
+        println!("Game not in progress");
         return None;
     }
-    let other_player = player.other_player();
     let mut best_move = None;
     let mut best_score = -INFINITY;
     for (row, col) in game.open_indicies() {
         for &move_type in &[MoveType::X, MoveType::O] {
             let curr_move = Move::new(move_type, row, col);
             let curr_game = game.make_move(curr_move).unwrap();
-            let score = minimax_helper(3, curr_game, other_player);
+            let score = minimax_helper(1, curr_game, player);
             if score > best_score {
                 best_score = score;
                 best_move = Some(curr_move);
@@ -55,7 +61,7 @@ fn minimax_helper(depth: usize, game: Game, player: Player) -> f64 {
         Player::Chaos => chaos_eval,
     };
     if depth == 0 {
-        return eval(game);
+        return order_eval(game);
     }
     let mut best_score = -INFINITY;
     for (row, col) in game.open_indicies() {
@@ -66,9 +72,10 @@ fn minimax_helper(depth: usize, game: Game, player: Player) -> f64 {
                 None => continue,
             };
             let score = minimax_helper(depth - 1, curr_game, player.other_player());
-            if score > best_score {
-                best_score = score;
-            }
+            best_score = match player {
+                Player::Order => best_score.max(score),
+                Player::Chaos => best_score.min(score),
+            };
         }
     }
     return best_score;
@@ -86,12 +93,12 @@ fn order_eval(game: Game) -> f64 {
     ];
     let mut score = 0.;
     for count in counts {
-        score = match count {
-            5 => score + 100.,
-            4 => score + 25.,
-            3 => score + 10.,
-            2 => score + 5.,
-            _ => score,
+        score += match count {
+            5 => INFINITY,
+            4 => 25.,
+            3 => 10.,
+            2 => 5.,
+            _ => 0.,
         }
     }
     score
@@ -99,25 +106,92 @@ fn order_eval(game: Game) -> f64 {
 
 fn chaos_eval(game: Game) -> f64 {
     if game.get_status() == GameStatus::ChaosWins {
-        return 100.;
+        return INFINITY;
     }
     let mut score = 0.;
     for (row, col) in game.open_indicies() {
-        let x_score = order_eval(
-            game.clone()
-                .make_move(Move::new(MoveType::X, row, col))
-                .unwrap(),
-        );
-        let o_score = order_eval(
-            game.clone()
-                .make_move(Move::new(MoveType::O, row, col))
-                .unwrap(),
-        );
-        if x_score > o_score && x_score > score {
-            score = x_score;
-        } else if o_score > x_score && o_score > score {
-            score = o_score;
+        for &move_type in &[MoveType::X, MoveType::O] {
+            let new_score = order_eval(
+                game.make_move(Move::new(move_type, row, col))
+                    .unwrap()
+            );
+            if new_score > score {
+                score = new_score;
+            }
         }
     }
     -score
+}
+
+
+#[cfg(test)]
+mod minmax_tests {
+    use crate::board::{Game, GameStatus, Move, MoveType};
+    use super::{Player, ai_move, order_eval};
+
+    #[test]
+    fn score_order_board() {
+        let mut game = Game::new();
+        let mut score;
+        let x = MoveType::X;
+
+        game = game.make_move(Move::new(x, 1, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        score = order_eval(game.clone());
+        assert_eq!(score, 0.);
+
+        game = game.make_move(Move::new(x, 2, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        score = order_eval(game.clone());
+        assert_eq!(score, 5.);
+
+        game = game.make_move(Move::new(x, 0, 1)).unwrap();
+        score = order_eval(game.clone());
+        assert_eq!(score, 0.);
+
+        game = game.make_move(Move::new(x, 0, 2)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        score = order_eval(game.clone());
+        assert_eq!(score, 5.);
+
+        game = game.make_move(Move::new(x, 0, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        score = order_eval(game);
+        assert_eq!(score, 20.);
+    }
+
+    #[test]
+    fn test_order_clear_win_horizontal() {
+        let mut game = Game::new();
+        let x = MoveType::X;
+        game = game.make_move(Move::new(x, 0, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(Move::new(x, 1, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(Move::new(x, 2, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(Move::new(x, 3, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = ai_move(&game, Player::Order);
+        println!("{}", game);
+        assert_eq!(game.get_status(), GameStatus::OrderWins);
+    }
+
+    #[test]
+    fn test_chaos_clear_block_horizontal() {
+        let mut game = Game::new();
+        let x = MoveType::X;
+        game = game.make_move(Move::new(x, 0, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(Move::new(x, 1, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(Move::new(x, 2, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = game.make_move(Move::new(x, 3, 0)).unwrap();
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        game = ai_move(&game, Player::Chaos);
+        assert_eq!(game.get_status(), GameStatus::InProgress);
+        assert_eq!(game.last_move().unwrap().1, 4);
+        assert_eq!(game.last_move().unwrap().0, 0);
+    }
 }
