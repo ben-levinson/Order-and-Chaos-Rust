@@ -210,6 +210,10 @@ impl<'a> BoardGUI<'a> {
         self.piece_matrix = [BoardState::Empty.display(); ROWS * COLS];
         self.turn = Player::Order;
         self.game = Game::new();
+        if self.opponent_is_ai() && self.ai_opponent() == Player::Order {
+            handle_ai_move(self);
+            self.turn = Player::Chaos;
+        }
     }
 }
 
@@ -253,10 +257,6 @@ fn main() {
     // Our demonstration app that we'll control with our GUI.
     let mut app = BoardGUI::new();
     let mut piece_was_placed = false;
-
-    if app.opponent_is_ai() && app.ai_opponent() == Player::Order {
-        handle_ai_move(&mut app);
-    }
 
     // Poll events from the window.
     let mut event_loop = support::EventLoop::new();
