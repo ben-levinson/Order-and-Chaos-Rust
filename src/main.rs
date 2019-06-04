@@ -1,5 +1,5 @@
-use project::board::{Game, GameStatus, Move, MoveType};
-use project::strategy::{Player, ai_move};
+use Order_and_Chaos::board::{Game, GameStatus, Move, MoveType};
+use Order_and_Chaos::strategy::{Player, ai_move};
 
 #[macro_use]
 extern crate conrod_core;
@@ -140,7 +140,7 @@ impl<'a> BoardGUI<'a> {
     pub fn set_piece_matrix(&mut self, game: &Game) {
         for row in 0..game.size() {
             for col in 0..game.size() {
-                match game.flat_index(row, col) {
+                match game.index(row, col) {
                     Some(cell) => match cell {
                         MoveType::X => {
                             self.piece_matrix[flat_index(row, col)] = "X";

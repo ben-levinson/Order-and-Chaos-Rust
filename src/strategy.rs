@@ -1,3 +1,4 @@
+extern crate rayon;
 use crate::board::{BoardDirection, Game, GameStatus, Move, MoveType};
 use rayon::prelude::*;
 use std::f64::INFINITY;
@@ -50,11 +51,12 @@ pub fn mini_max(game: &Game, player: Player) -> Option<Move> {
             let curr_move = Move::new(move_type, row, col);
             let curr_game = game.make_move(curr_move).unwrap();
             //let score = minimax_helper(1, curr_game, player);
-            let score = alphabeta(curr_game, 3, -INFINITY, INFINITY, player);
+            let score = alphabeta(curr_game, 4, -INFINITY, INFINITY, player.other_player());
             if score.is_nan() {
                 continue;
             }
             dbg!(score);
+            dbg!(curr_move);
             match player {
                 Player::Order => {
                     if score >= best_score {
