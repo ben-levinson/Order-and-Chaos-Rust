@@ -1,6 +1,7 @@
 extern crate rayon;
 use crate::board::{BoardDirection, Game, GameStatus, Move, MoveType};
 use rayon::prelude::*;
+use std::sync::mpsc::channel;
 use std::f64::INFINITY;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
@@ -35,12 +36,28 @@ pub fn ai_move(game: &Game, player: Player) -> Game {
     }
 }
 
+fn possible_moves(game: &Game) -> impl ParallelIterator<Item = (MoveType, usize, usize)> {
+    let mut result = Vec::new();
+    for (row, col) in game.open_indicies() {
+        for &move_type in &[MoveType::X, MoveType::O] {
+            result.push((move_type.clone(), row, col));
+        }
+    }
+    result.into_par_iter()
+}
+
 pub fn mini_max(game: &Game, player: Player) -> Option<Move> {
-    println!("Start minimax");
     if game.get_status() != GameStatus::InProgress {
         println!("Game not in progress");
         return None;
     }
+    let (sender, receiver) = channel();
+    possible_moves(game).for_each_with(sender, |s, (move_type, row, col)| {
+            let curr_move = Move::new(move_type, row, col);
+            let curr_game = game.make_move(curr_move).unwrap();
+            let score = alphabeta(curr_game, 4, -INFINITY, INFINITY, player.other_player());
+            s.send((score, curr_move)).unwrap();
+    });
     let mut best_move = None;
     let mut best_score = match player {
         Player::Order => -INFINITY,
@@ -64,6 +81,7 @@ pub fn mini_max(game: &Game, player: Player) -> Option<Move> {
                         best_move = Some(curr_move);
                     }
                 }
+        
                 Player::Chaos => {
                     if best_score >= score {
                         best_score = score;
@@ -73,34 +91,7 @@ pub fn mini_max(game: &Game, player: Player) -> Option<Move> {
             }
         }
     }
-    dbg!(best_move);
     best_move
-}
-
-fn minimax_helper(depth: usize, game: &Game, player: Player) -> f64 {
-    let eval = match player {
-        Player::Order => order_eval,
-        Player::Chaos => chaos_eval,
-    };
-    if depth == 0 {
-        return order_eval(game);
-    }
-    let mut best_score = -INFINITY;
-    for (row, col) in game.open_indicies() {
-        for &move_type in &[MoveType::X, MoveType::O] {
-            let curr_move = Move::new(move_type, row, col);
-            let curr_game = match game.make_move(curr_move) {
-                Some(g) => g,
-                None => continue,
-            };
-            let score = minimax_helper(depth - 1, &curr_game, player.other_player());
-            best_score = match player {
-                Player::Order => best_score.max(score),
-                Player::Chaos => best_score.min(score),
-            };
-        }
-    }
-    return best_score;
 }
 
 fn alphabeta(game: Game, depth: usize, mut alpha: f64, mut beta: f64, player: Player) -> f64 {
