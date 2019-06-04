@@ -4,6 +4,7 @@ use rayon::prelude::*;
 use std::sync::mpsc::channel;
 use std::f64::INFINITY;
 
+///A Player is either Order or Chaos
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Player {
     Order,
@@ -11,12 +12,14 @@ pub enum Player {
 }
 
 impl<'a> Player {
+    ///Print out the current player type
     pub fn display(&self) -> &'a str {
         match self {
             Player::Order => "Order",
             Player::Chaos => "Chaos",
         }
     }
+    ///Get the type of the other player
     pub fn other_player(&self) -> Self {
         match self {
             Player::Order => Player::Chaos,
@@ -25,6 +28,7 @@ impl<'a> Player {
     }
 }
 
+///Specified computer player makes a move in the current game.
 pub fn ai_move(game: &Game, player: Player) -> Game {
     let best_move = mini_max(&game, player).unwrap();
     match game.make_move(best_move) {
@@ -46,7 +50,7 @@ fn possible_moves(game: &Game) -> impl ParallelIterator<Item = (MoveType, usize,
     result.into_par_iter()
 }
 
-pub fn mini_max(game: &Game, player: Player) -> Option<Move> {
+fn mini_max(game: &Game, player: Player) -> Option<Move> {
     if game.get_status() != GameStatus::InProgress {
         println!("Game not in progress");
         return None;
@@ -67,13 +71,10 @@ pub fn mini_max(game: &Game, player: Player) -> Option<Move> {
         for &move_type in &[MoveType::X, MoveType::O] {
             let curr_move = Move::new(move_type, row, col);
             let curr_game = game.make_move(curr_move).unwrap();
-            //let score = minimax_helper(1, curr_game, player);
             let score = alphabeta(curr_game, 4, -INFINITY, INFINITY, player.other_player());
             if score.is_nan() {
                 continue;
             }
-            dbg!(score);
-            dbg!(curr_move);
             match player {
                 Player::Order => {
                     if score >= best_score {
@@ -234,20 +235,21 @@ mod minmax_tests {
     }
 
     #[test]
-    fn test_chaos_clear_block_horizontal() {
+    fn test_chaos_clear_block() {
         let mut game = Game::new();
         let x = MoveType::X;
-        game = game.make_move(Move::new(x, 0, 0)).unwrap();
+        game = game.make_move(Move::new(x, 5, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(Move::new(x, 1, 0)).unwrap();
+        game = game.make_move(Move::new(x, 4, 1)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(Move::new(x, 2, 0)).unwrap();
+        game = game.make_move(Move::new(x, 3, 2)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = game.make_move(Move::new(x, 3, 0)).unwrap();
+        game = game.make_move(Move::new(x, 2, 3)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
         game = ai_move(&game, Player::Chaos);
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        assert_eq!(game.last_move().unwrap().1, 4);
-        assert_eq!(game.last_move().unwrap().0, 0);
+        println!("{}", game);
+        assert_eq!(game.last_move().unwrap().1, 1);
+        assert_eq!(game.last_move().unwrap().0, 4);
     }
 }

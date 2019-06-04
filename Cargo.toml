@@ -1,5 +1,5 @@
 [package]
-name = "project"
+name = "order_and_chaos"
 version = "0.1.0"
 authors = ["Ben Levinson <benjaminlevinson2019@u.northwestern.edu>"]
 edition = "2018"

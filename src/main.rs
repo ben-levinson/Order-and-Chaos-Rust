@@ -1,5 +1,5 @@
-use Order_and_Chaos::board::{Game, GameStatus, Move, MoveType};
-use Order_and_Chaos::strategy::{Player, ai_move};
+use order_and_chaos::board::{Game, GameStatus, Move, MoveType};
+use order_and_chaos::strategy::{Player, ai_move};
 
 #[macro_use]
 extern crate conrod_core;
@@ -168,16 +168,6 @@ impl<'a> BoardGUI<'a> {
             self.set_piece_matrix(&new_game);
             self.update_game(new_game);
         }
-        // match self.game.make_move(Move::new(cell_type, row, col)) {
-            
-        //     Some(new_game) => {
-        //         self.set_piece_matrix(&new_game);
-        //         self.update_game(new_game)
-        //         // self.piece_matrix[row * COLS + col] = piece;
-                
-        //     }
-        //     None => _;//game.clone(),
-        // }
     }
 
     ///Get the opponent
@@ -359,8 +349,8 @@ fn handle_board_clicks(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &m
             if app.game().get_status() == GameStatus::InProgress {
                 if app.piece_matrix()[flat_index(r, c)] == BoardState::Empty.display() {
                     app.set_piece(r, c, app.current_piece().display());
+                    result = true;
                 }
-                result = true;
             }
         }
     }

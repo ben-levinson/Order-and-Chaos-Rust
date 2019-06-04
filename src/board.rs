@@ -81,7 +81,7 @@ impl Game {
         self.size
     }
 
-    ///Get the number of like pieces in a row in a given direction.
+    ///Get the number of like pieces in a given direction.
     fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<MoveType>) -> usize {
         let mut max_count = 0;
         let mut count = 0;
