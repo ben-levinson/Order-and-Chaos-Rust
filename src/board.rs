@@ -49,7 +49,7 @@ pub enum BoardDirection {
 pub struct Game {
     size: usize,
     num_to_win: usize,
-    board: Vec<Option<MoveType>>,
+    board: [Option<MoveType>; 36],
     pieces_placed: usize,
     last_move: Option<(usize, usize)>,
 }
@@ -59,7 +59,7 @@ impl Game {
     pub fn new() -> Self {
         Game {
             size: 6,
-            board: vec![None; 36],
+            board: [None; 36],
             pieces_placed: 0,
             num_to_win: 5,
             last_move: None,
