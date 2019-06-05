@@ -16,6 +16,8 @@ pub enum MoveType {
     O,
 }
 
+const SIZE: usize = 6;
+
 ///A move consists of a piece and a location in the board.
 #[derive(Clone, Copy, Debug)]
 pub struct Move {
@@ -49,7 +51,7 @@ pub enum BoardDirection {
 pub struct Game {
     size: usize,
     num_to_win: usize,
-    board: [Option<MoveType>; 36],
+    board: [Option<MoveType>; SIZE * SIZE],
     pieces_placed: usize,
     last_move: Option<(usize, usize)>,
 }
@@ -58,8 +60,8 @@ impl Game {
     ///Create a new game
     pub fn new() -> Self {
         Game {
-            size: 6,
-            board: [None; 36],
+            size: SIZE,
+            board: [None; SIZE * SIZE],
             pieces_placed: 0,
             num_to_win: 5,
             last_move: None,
@@ -141,7 +143,7 @@ impl Game {
     }
 
     ///Get a list of the open spaces in the game.
-    pub fn open_indicies(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+    pub fn open_indices(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         let size = self.size;
         self.board.iter().enumerate().filter_map(move |(i, m)| {
             match m {
