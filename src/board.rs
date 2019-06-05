@@ -147,8 +147,8 @@ impl Game {
         let size = self.size;
         self.board.iter().enumerate().filter_map(move |(i, m)| {
             match m {
-                Some(_) => Some((i / size, i % size)),
-                None => None
+                Some(_) => None,
+                None => Some((i / size, i % size)),
             }
         })
     }
@@ -180,8 +180,7 @@ impl Game {
 
     ///Places a piece with a location specified by the move into the game.
     pub fn make_move(&self, m: Move) -> Option<Game> {
-        //        println!("Made move to {} {}", m.row, m.col);
-        if self.index(m.row, m.col).is_some() {
+        if self.index(m.row, m.col).is_some() || self.get_status() != GameStatus::InProgress {
             None
         } else {
             let mut new_board = self.board.clone();

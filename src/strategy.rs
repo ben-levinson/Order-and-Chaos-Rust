@@ -87,6 +87,33 @@ fn alphabeta(game: Game, depth: usize, mut alpha: f64, mut beta: f64, player: Pl
     if depth == 0 || game.get_status() != GameStatus::InProgress {
         return order_eval(&game);
     }
+    let mut value = match player {
+        Player::Order => -INFINITY,
+        Player::Chaos => INFINITY,
+    };
+    for (row, col) in game.open_indices() {
+        for &move_type in &[MoveType::X, MoveType::O] {
+            let curr_move = Move::new(move_type, row, col);
+            let next_game = game.make_move(curr_move).expect("Failed to make move");
+            let new_val = alphabeta(next_game, depth - 1, alpha, beta, player.other_player());
+            match player {
+                Player::Order => {
+                    value = value.max(new_val);
+                    alpha = alpha.max(new_val);
+                }
+                Player::Chaos => {
+                    value = value.min(new_val);
+                    beta = beta.min(new_val);
+                }
+            }
+            if alpha >= beta {
+                return value;
+            }
+        }
+    }
+    value
+
+    /*
     match player {
         Player::Order => {
             let mut value = -INFINITY;
@@ -121,6 +148,8 @@ fn alphabeta(game: Game, depth: usize, mut alpha: f64, mut beta: f64, player: Pl
             value
         }
     }
+    */
+
 }
 
 fn order_eval(game: &Game) -> f64 {
@@ -149,42 +178,42 @@ fn order_eval(game: &Game) -> f64 {
     score
 }
 
-//#[cfg(test)]
-//mod minmax_tests {
+// #[cfg(test)]
+// mod minmax_tests {
 //    use crate::board::{Game, GameStatus, Move, MoveType};
 //    use super::{Player, ai_move, order_eval};
-//
+
 //    #[test]
 //    fn score_order_board() {
 //        let mut game = Game::new();
 //        let mut score;
 //        let x = MoveType::X;
-//
+
 //        game = game.make_move(Move::new(x, 1, 0)).unwrap();
 //        assert_eq!(game.get_status(), GameStatus::InProgress);
 //        score = order_eval(&game);
 //        assert_eq!(score, 0.);
-//
+
 //        game = game.make_move(Move::new(x, 2, 0)).unwrap();
 //        assert_eq!(game.get_status(), GameStatus::InProgress);
 //        score = order_eval(&game);
 //        assert_eq!(score, 5.);
-//
+
 //        game = game.make_move(Move::new(x, 0, 1)).unwrap();
 //        score = order_eval(&game);
 //        assert_eq!(score, 0.);
-//
+
 //        game = game.make_move(Move::new(x, 0, 2)).unwrap();
 //        assert_eq!(game.get_status(), GameStatus::InProgress);
 //        score = order_eval(&game);
 //        assert_eq!(score, 5.);
-//
+
 //        game = game.make_move(Move::new(x, 0, 0)).unwrap();
 //        assert_eq!(game.get_status(), GameStatus::InProgress);
 //        score = order_eval(&game);
 //        assert_eq!(score, 20.);
 //    }
-//
+
 //    #[test]
 //    fn test_order_clear_win_horizontal() {
 //        let mut game = Game::new();
@@ -201,7 +230,7 @@ fn order_eval(game: &Game) -> f64 {
 //        println!("{}", game);
 //        assert_eq!(game.get_status(), GameStatus::OrderWins);
 //    }
-//
+
 //    #[test]
 //    fn test_chaos_clear_block() {
 //        let mut game = Game::new();
@@ -220,4 +249,28 @@ fn order_eval(game: &Game) -> f64 {
 //        assert_eq!(game.last_move().unwrap().1, 1);
 //        assert_eq!(game.last_move().unwrap().0, 4);
 //    }
-//}
+//    #[test]
+//    fn test_open_indices() {
+//        let mut game = Game::new();
+//        let x = MoveType::X;
+//        game = game.make_move(Move::new(x, 0, 0)).unwrap();
+//        game = game.make_move(Move::new(x, 1, 0)).unwrap();
+//        game = game.make_move(Move::new(x, 3, 2)).unwrap();
+//        game = game.make_move(Move::new(x, 2, 3)).unwrap();
+//        game = game.make_move(Move::new(x, 2, 4)).unwrap();
+//        game = game.make_move(Move::new(x, 4, 2)).unwrap();
+//        let mut count = 0;
+//        for cell in game.open_indices() {
+//            dbg!(cell);
+//            count += 1;
+//            assert_ne!(cell, (0, 0));
+//            assert_ne!(cell, (1, 0));
+//            assert_ne!(cell, (3, 2));
+//            assert_ne!(cell, (2, 3));
+//            assert_ne!(cell, (2, 4));
+//            assert_ne!(cell, (4, 2));
+//        }
+//        assert_eq!(count, 30);
+//    }
+
+// }
