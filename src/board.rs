@@ -144,15 +144,16 @@ impl Game {
 
     ///Get a list of the open spaces in the game.
     pub fn open_indices(&self) -> impl Iterator<Item = (usize, usize)> {
-        let mut open = Vec::new();
-        for row in 0..self.size {
-            for col in 0..self.size {
-                if self.index(row, col).is_none() {
-                    open.push((row, col));
-                }
-            }
-        }
-        open.into_iter()
+        self.board.iter().enumerate().filter_map(|(r,c)| if self.index(r,c).is_none() { (r,c) })
+        // let mut open = Vec::new();
+        // for row in 0..self.size {
+        //     for col in 0..self.size {
+        //         if self.index(row, col).is_none() {
+        //             open.push((row, col));
+        //         }
+        //     }
+        // }
+        // open.into_iter()
     }
 
     ///Query the status of the game. Has a player won or is the game still in progress.
