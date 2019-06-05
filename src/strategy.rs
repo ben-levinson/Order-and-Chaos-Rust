@@ -94,7 +94,7 @@ fn alphabeta(game: Game, depth: usize, mut alpha: f64, mut beta: f64, player: Pl
     match player {
         Player::Order => {
             let mut value = -INFINITY;
-            for (row, col) in game.open_indicies() {
+            for (row, col) in game.open_indices() {
                 for &move_type in &[MoveType::X, MoveType::O] {
                     let curr_move = Move::new(move_type, row, col);
                     let next_game = game.make_move(curr_move).expect("Failed to make move");
@@ -153,24 +153,24 @@ fn order_eval(game: &Game) -> f64 {
     score
 }
 
-fn chaos_eval(game: &Game) -> f64 {
-    if game.get_status() == GameStatus::ChaosWins {
-        return -INFINITY;
-    }
-    let mut score = 0.;
-    for (row, col) in game.open_indicies() {
-        for &move_type in &[MoveType::X, MoveType::O] {
-            let new_score = order_eval(
-                &game.make_move(Move::new(move_type, row, col))
-                     .unwrap()
-            );
-            if new_score > score {
-                score = new_score;
-            }
-        }
-    }
-    score
-}
+//fn chaos_eval(game: &Game) -> f64 {
+//    if game.get_status() == GameStatus::ChaosWins {
+//        return -INFINITY;
+//    }
+//    let mut score = 0.;
+//    for (row, col) in game.open_indicies() {
+//        for &move_type in &[MoveType::X, MoveType::O] {
+//            let new_score = order_eval(
+//                &game.make_move(Move::new(move_type, row, col))
+//                     .unwrap()
+//            );
+//            if new_score > score {
+//                score = new_score;
+//            }
+//        }
+//    }
+//    score
+//}
 
 
 //#[cfg(test)]
