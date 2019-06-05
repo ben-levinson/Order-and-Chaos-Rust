@@ -141,16 +141,14 @@ impl Game {
     }
 
     ///Get a list of the open spaces in the game.
-    pub fn open_indicies(&self) -> impl Iterator<Item = (usize, usize)> {
-        let mut open = Vec::new();
-        for row in 0..self.size {
-            for col in 0..self.size {
-                if self.index(row, col).is_none() {
-                    open.push((row, col));
-                }
+    pub fn open_indicies(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        let size = self.size;
+        self.board.iter().enumerate().filter_map(move |(i, m)| {
+            match m {
+                Some(_) => Some((i / size, i % size)),
+                None => None
             }
-        }
-        open.into_iter()
+        })
     }
 
     ///Query the status of the game. Has a player won or is the game still in progress.

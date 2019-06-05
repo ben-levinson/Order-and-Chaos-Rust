@@ -40,14 +40,10 @@ pub fn ai_move(game: &Game, player: Player) -> Game {
     }
 }
 
-fn possible_moves(game: &Game) -> impl ParallelIterator<Item = (MoveType, usize, usize)> {
-    let mut result = Vec::new();
-    for (row, col) in game.open_indicies() {
-        for &move_type in &[MoveType::X, MoveType::O] {
-            result.push((move_type.clone(), row, col));
-        }
-    }
-    result.into_par_iter()
+fn possible_moves(game: &Game) -> impl ParallelIterator<Item = (MoveType, usize, usize)> + '_ {
+    game.open_indicies().map(|(row, col)| (MoveType::X, row, col))
+        .chain(game.open_indicies().map(|(row, col)| (MoveType::O, row, col)))
+        .par_bridge()
 }
 
 fn mini_max(game: &Game, player: Player) -> Option<Move> {
@@ -59,7 +55,7 @@ fn mini_max(game: &Game, player: Player) -> Option<Move> {
     possible_moves(game).for_each_with(sender, |s, (move_type, row, col)| {
             let curr_move = Move::new(move_type, row, col);
             let curr_game = game.make_move(curr_move).unwrap();
-            let score = alphabeta(curr_game, 4, -INFINITY, INFINITY, player.other_player());
+            let score = alphabeta(curr_game, 5, -INFINITY, INFINITY, player.other_player());
             s.send((score, curr_move)).unwrap();
     });
     let mut best_move = None;
@@ -148,25 +144,6 @@ fn order_eval(game: &Game) -> f64 {
             3 => 10.,
             2 => 5.,
             _ => 0.,
-        }
-    }
-    score
-}
-
-fn chaos_eval(game: &Game) -> f64 {
-    if game.get_status() == GameStatus::ChaosWins {
-        return -INFINITY;
-    }
-    let mut score = 0.;
-    for (row, col) in game.open_indicies() {
-        for &move_type in &[MoveType::X, MoveType::O] {
-            let new_score = order_eval(
-                &game.make_move(Move::new(move_type, row, col))
-                     .unwrap()
-            );
-            if new_score > score {
-                score = new_score;
-            }
         }
     }
     score
