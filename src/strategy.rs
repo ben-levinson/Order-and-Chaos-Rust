@@ -190,9 +190,10 @@ mod minmax_tests {
        assert_eq!(score, 20.);
    }
    
-   /* The following tests take too long to run on Travis 
+   /* The following tests take too long to run on Travis  */
 
    #[test]
+   #[ignore]
    fn test_order_clear_win_horizontal() {
        let mut game = Game::new();
        let x = MoveType::X;
@@ -209,6 +210,7 @@ mod minmax_tests {
    }
 
    #[test]
+   #[ignore]
    fn test_order_clear_win_vertical() {
        let mut game = Game::new();
        let x = MoveType::X;
@@ -228,9 +230,11 @@ mod minmax_tests {
    }
 
    #[test]
+   #[ignore]
    fn test_chaos_clear_block() {
        let mut game = Game::new();
        let x = MoveType::X;
+       let o = MoveType::O;
        game = game.make_move(Move::new(x, 5, 0)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
        game = game.make_move(Move::new(x, 4, 1)).unwrap();
@@ -239,15 +243,19 @@ mod minmax_tests {
        assert_eq!(game.get_status(), GameStatus::InProgress);
        game = game.make_move(Move::new(x, 2, 3)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
+       game = game.make_move(Move::new(o, 0, 5)).unwrap();
+       assert_eq!(game.get_status(), GameStatus::InProgress);
+       println!("{}", game);
        game = ai_move(&game, Player::Chaos);
+       println!("{}", game);
        assert_eq!(game.get_status(), GameStatus::InProgress);
        assert_eq!(game.last_move().unwrap().1, 1);
        assert_eq!(game.last_move().unwrap().0, 4);
    }
 
-    */
 
     #[test]
+    #[ignore]
     fn test_open_clear_win_anti_diag() {
         let mut game = Game::new();
         let x = MoveType::X;
