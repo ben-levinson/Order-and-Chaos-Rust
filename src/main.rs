@@ -1,5 +1,4 @@
-use order_and_chaos::board::{Game, GameStatus, Move, MoveType};
-use order_and_chaos::strategy::{Player, ai_move};
+use order_and_chaos::board::{Game, GameStatus, Move, MoveType, Strategy, Player};
 
 #[macro_use]
 extern crate conrod_core;
@@ -46,8 +45,8 @@ enum BoardState {
     O,
 }
 
-impl<'a> BoardState {
-    pub fn display(&self) -> &'a str {
+impl BoardState {
+    pub fn display(&self) -> &'static str {
         match self {
             BoardState::Empty => "",
             BoardState::X => "X",
@@ -62,8 +61,8 @@ enum Opponent {
     AI,
 }
 
-impl<'a> Opponent {
-    pub fn display(&self) -> &'a str {
+impl Opponent {
+    pub fn display(&self) -> &'static str {
         match self {
             Opponent::AI => "AI",
             Opponent::Human => "Human",
@@ -71,17 +70,17 @@ impl<'a> Opponent {
     }
 }
 
-struct BoardGUI<'a> {
+struct BoardGUI {
     turn: Player,
     current_piece: BoardState,
-    piece_label: &'a str,
-    piece_matrix: [&'a str; ROWS * COLS],
+    piece_label: &'static str,
+    piece_matrix: [&'static str; ROWS * COLS],
     opponent: Opponent,
     ai_opponent: Player,
     game: Game,
 }
 
-impl<'a> BoardGUI<'a> {
+impl BoardGUI {
     fn new() -> Self {
         BoardGUI {
             turn: Player::Order,
@@ -123,17 +122,17 @@ impl<'a> BoardGUI<'a> {
     }
 
     ///Get the label to display for the piece
-    pub fn piece_label(&self) -> &'a str {
+    pub fn piece_label(&self) -> &'static str {
         self.piece_label
     }
 
     ///Set the piece label
-    pub fn set_piece_label(&mut self, label: &'a str) {
+    pub fn set_piece_label(&mut self, label: &'static str) {
         self.piece_label = label
     }
 
     ///The matrix representing the board
-    pub fn piece_matrix(&self) -> [&'a str; ROWS * COLS] {
+    pub fn piece_matrix(&self) -> [&'static str; ROWS * COLS] {
         self.piece_matrix
     }
 
@@ -158,7 +157,7 @@ impl<'a> BoardGUI<'a> {
     }
 
     ///Set a piece in a specific location in the board
-    pub fn set_piece(&mut self, row: usize, col: usize, piece: &'a str) {
+    pub fn set_piece(&mut self, row: usize, col: usize, piece: &'static str) {
         let cell_type = if piece == "X" {
             MoveType::X
         } else {
@@ -216,7 +215,7 @@ fn main() {
     // Build the window.
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new()
-        .with_title("Widget Demonstration")
+        .with_title("Order and Chaos")
         .with_dimensions((WIDTH, HEIGHT).into());
     let context = glium::glutin::ContextBuilder::new()
         .with_vsync(true)
@@ -312,7 +311,7 @@ fn flat_index(row: usize, col: usize) -> usize {
 
 fn handle_ai_move(app: &mut BoardGUI) {
     if app.game().get_status() == GameStatus::InProgress {
-        let new_game = ai_move(app.game(), app.ai_opponent());
+        let new_game = app.game().ai_move(app.ai_opponent());
         app.set_piece_matrix(&new_game);
         app.update_game(new_game);
     }

@@ -1,42 +1,23 @@
+///There is no public API calls located in the strategy module. This module contains the
+/// implementation details for an Order and Chaos AI.
+
 extern crate rayon;
-use crate::board::{BoardDirection, Game, GameStatus, Move, MoveType};
+use crate::board::{BoardDirection, Game, GameStatus, Move, MoveType, Strategy, Player};
 use rayon::prelude::*;
 use std::sync::mpsc::channel;
 use rand::seq::SliceRandom;
 use std::f64::INFINITY;
 
-///A Player is either Order or Chaos
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
-pub enum Player {
-    Order,
-    Chaos,
-}
 
-impl<'a> Player {
-    ///Print out the current player type
-    pub fn display(&self) -> &'a str {
-        match self {
-            Player::Order => "Order",
-            Player::Chaos => "Chaos",
-        }
-    }
-    ///Get the type of the other player
-    pub fn other_player(&self) -> Self {
-        match self {
-            Player::Order => Player::Chaos,
-            Player::Chaos => Player::Order,
-        }
-    }
-}
-
-///Specified computer player makes a move in the current game.
-pub fn ai_move(game: &Game, player: Player) -> Game {
-    let best_move = mini_max(&game, player).unwrap();
-    match game.make_move(best_move) {
-        Some(g) => g,
-        None => {
-            println!("Illegal move");
-            unreachable!();
+impl Strategy for Game {
+    fn ai_move(&self, player: Player) -> Game {
+        let best_move = mini_max(&self, player).unwrap();
+        match self.make_move(best_move) {
+            Some(g) => g,
+            None => {
+                println!("Illegal move");
+                unreachable!();
+            }
         }
     }
 }
@@ -99,7 +80,7 @@ fn mini_max(game: &Game, player: Player) -> Option<Move> {
 
 fn alphabeta(game: Game, depth: usize, mut alpha: f64, mut beta: f64, player: Player) -> f64 {
     if depth == 0 || game.get_status() != GameStatus::InProgress {
-        return order_eval(&game);
+        return score(&game);
     }
     let mut value = match player {
         Player::Order => -INFINITY,
@@ -128,7 +109,7 @@ fn alphabeta(game: Game, depth: usize, mut alpha: f64, mut beta: f64, player: Pl
     value
 }
 
-fn order_eval(game: &Game) -> f64 {
+fn score(game: &Game) -> f64 {
     let mut score = match game.get_status() {
         GameStatus::OrderWins => return INFINITY,
         GameStatus::ChaosWins => return -INFINITY,
@@ -156,8 +137,8 @@ fn order_eval(game: &Game) -> f64 {
 
 #[cfg(test)]
 mod minmax_tests {
-   use crate::board::{Game, GameStatus, Move, MoveType};
-   use super::{Player, ai_move, order_eval};
+   use crate::board::{Game, GameStatus, Move, MoveType, Strategy};
+   use super::{Player, score, };
 
    #[test]
    fn score_order_board() {
@@ -167,26 +148,26 @@ mod minmax_tests {
 
        game = game.make_move(Move::new(x, 1, 0)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       score = order_eval(&game);
+       score = score(&game);
        assert_eq!(score, 0.);
 
        game = game.make_move(Move::new(x, 2, 0)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       score = order_eval(&game);
+       score = score(&game);
        assert_eq!(score, 5.);
 
        game = game.make_move(Move::new(x, 0, 1)).unwrap();
-       score = order_eval(&game);
+       score = score(&game);
        assert_eq!(score, 0.);
 
        game = game.make_move(Move::new(x, 0, 2)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       score = order_eval(&game);
+       score = score(&game);
        assert_eq!(score, 5.);
 
        game = game.make_move(Move::new(x, 0, 0)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       score = order_eval(&game);
+       score = score(&game);
        assert_eq!(score, 20.);
    }
    
@@ -205,7 +186,7 @@ mod minmax_tests {
        assert_eq!(game.get_status(), GameStatus::InProgress);
        game = game.make_move(Move::new(x, 0, 3)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       game = ai_move(&game, Player::Order);
+       game = game.ai_move(Player::Order);
        assert_eq!(game.get_status(), GameStatus::OrderWins);
    }
 
@@ -225,7 +206,7 @@ mod minmax_tests {
        assert_eq!(game.get_status(), GameStatus::InProgress);
        game = game.make_move(Move::new(x, 4, 3)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       game = ai_move(&game, Player::Order);
+       game = game.ai_move(Player::Order);
        assert_eq!(game.get_status(), GameStatus::OrderWins);
    }
 
@@ -246,7 +227,7 @@ mod minmax_tests {
        game = game.make_move(Move::new(o, 0, 5)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
        println!("{}", game);
-       game = ai_move(&game, Player::Chaos);
+       game = game.ai_move(Player::Chaos);
        println!("{}", game);
        assert_eq!(game.get_status(), GameStatus::InProgress);
        assert_eq!(game.last_move().unwrap().1, 1);
@@ -274,7 +255,7 @@ mod minmax_tests {
         game = game.make_move(Move::new(x, 4, 1)).unwrap();
         game = game.make_move(Move::new(o, 5, 0)).unwrap();
         assert_eq!(game.get_status(), GameStatus::InProgress);
-        game = ai_move(&game, Player::Order);
+        game = game.ai_move(Player::Order);
         assert_eq!(game.get_status(), GameStatus::OrderWins);
    }
 

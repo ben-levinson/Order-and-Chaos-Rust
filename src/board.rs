@@ -1,6 +1,30 @@
 use std::cmp::{max, min};
 use std::fmt;
 
+///A Player is either Order or Chaos
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
+pub enum Player {
+    Order,
+    Chaos,
+}
+
+impl Player {
+    ///Print out the current player type
+    pub fn display(&self) -> &'static str {
+        match self {
+            Player::Order => "Order",
+            Player::Chaos => "Chaos",
+        }
+    }
+    ///Get the type of the other player
+    pub fn other_player(&self) -> Self {
+        match self {
+            Player::Order => Player::Chaos,
+            Player::Chaos => Player::Order,
+        }
+    }
+}
+
 ///A game of Order and Chaos may be in progress, or won by either player.
 #[derive(Debug, Eq, PartialEq)]
 pub enum GameStatus {
@@ -37,7 +61,7 @@ impl Move {
     }
 }
 
-///Defines directions for checking a win state.
+///Defines directions for checking if the game is in a win state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoardDirection {
     Row,
@@ -46,7 +70,7 @@ pub enum BoardDirection {
     AntiDiagonal,
 }
 
-///A game of order and chaos
+///A game of order and chaos.
 #[derive(Clone)]
 pub struct Game {
     size: usize,
@@ -57,7 +81,7 @@ pub struct Game {
 }
 
 impl Game {
-    ///Create a new game
+    ///Create a new game.
     pub fn new() -> Self {
         Game {
             size: SIZE,
@@ -67,8 +91,7 @@ impl Game {
             last_move: None,
         }
     }
-    ///Some => Get the coordinates of the last move made. 
-    ///None => The game is over.
+    ///Return the coordinates of the last move made. Returns none if the game is over.
     pub fn last_move(&self) -> Option<(usize, usize)> {
         self.last_move.clone()
     }
@@ -216,6 +239,14 @@ impl fmt::Display for Game {
         Ok(())
     }
 }
+
+///Provides the strategy for an AI player to play the game. A new AI player can
+/// be implemented simply by defining a new implementation for ai_move.
+pub trait Strategy {
+    ///Specified computer player makes a move in the current game.
+    fn ai_move(&self, player: Player) -> Self;
+}
+
 
 #[cfg(test)]
 mod test {
