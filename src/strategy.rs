@@ -80,7 +80,7 @@ fn mini_max(game: &Game, player: Player) -> Option<Move> {
 
 fn alphabeta(game: Game, depth: usize, mut alpha: f64, mut beta: f64, player: Player) -> f64 {
     if depth == 0 || game.get_status() != GameStatus::InProgress {
-        return score(&game);
+        return eval(&game);
     }
     let mut value = match player {
         Player::Order => -INFINITY,
@@ -109,7 +109,7 @@ fn alphabeta(game: Game, depth: usize, mut alpha: f64, mut beta: f64, player: Pl
     value
 }
 
-fn score(game: &Game) -> f64 {
+fn eval(game: &Game) -> f64 {
     let mut score = match game.get_status() {
         GameStatus::OrderWins => return INFINITY,
         GameStatus::ChaosWins => return -INFINITY,
@@ -138,7 +138,7 @@ fn score(game: &Game) -> f64 {
 #[cfg(test)]
 mod minmax_tests {
    use crate::board::{Game, GameStatus, Move, MoveType, Strategy};
-   use super::{Player, score, };
+   use super::{Player, eval};
 
    #[test]
    fn score_order_board() {
@@ -148,26 +148,26 @@ mod minmax_tests {
 
        game = game.make_move(Move::new(x, 1, 0)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       score = score(&game);
+       score = eval(&game);
        assert_eq!(score, 0.);
 
        game = game.make_move(Move::new(x, 2, 0)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       score = score(&game);
+       score = eval(&game);
        assert_eq!(score, 5.);
 
        game = game.make_move(Move::new(x, 0, 1)).unwrap();
-       score = score(&game);
+       score = eval(&game);
        assert_eq!(score, 0.);
 
        game = game.make_move(Move::new(x, 0, 2)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       score = score(&game);
+       score = eval(&game);
        assert_eq!(score, 5.);
 
        game = game.make_move(Move::new(x, 0, 0)).unwrap();
        assert_eq!(game.get_status(), GameStatus::InProgress);
-       score = score(&game);
+       score = eval(&game);
        assert_eq!(score, 20.);
    }
    
