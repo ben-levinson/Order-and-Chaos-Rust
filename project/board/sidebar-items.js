@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["BoardDirection",""],["GameStatus",""],["MoveType",""]],"struct":[["Game",""],["Move",""]]});
