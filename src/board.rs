@@ -153,9 +153,7 @@ impl Game {
         };
         match direction {
             BoardDirection::Row => Self::num_consecutive(self.size, &|i| self.index(row, i)),
-            BoardDirection::Column => {
-                Self::num_consecutive(self.size, &|i| self.index(i, col))
-            }
+            BoardDirection::Column => Self::num_consecutive(self.size, &|i| self.index(i, col)),
             BoardDirection::Diagonal => Self::num_consecutive(diag_search, &|i| {
                 self.index(row + i - diag_min, col + i - diag_min)
             }),
@@ -168,12 +166,13 @@ impl Game {
     ///Get a list of the open spaces in the game.
     pub fn open_indices(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         let size = self.size;
-        self.board.iter().enumerate().filter_map(move |(i, m)| {
-            match m {
+        self.board
+            .iter()
+            .enumerate()
+            .filter_map(move |(i, m)| match m {
                 Some(_) => None,
                 None => Some((i / size, i % size)),
-            }
-        })
+            })
     }
 
     ///Query the status of the game. Has a player won or is the game still in progress.
@@ -246,7 +245,6 @@ pub trait Strategy {
     ///Specified computer player makes a move in the current game.
     fn ai_move(&self, player: Player) -> Self;
 }
-
 
 #[cfg(test)]
 mod test {

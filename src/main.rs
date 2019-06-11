@@ -1,4 +1,4 @@
-use order_and_chaos::board::{Game, GameStatus, Move, MoveType, Strategy, Player};
+use order_and_chaos::board::{Game, GameStatus, Move, MoveType, Player, Strategy};
 
 #[macro_use]
 extern crate conrod_core;
@@ -10,10 +10,10 @@ extern crate glium;
 
 mod support;
 
-use glium::Surface;
 use conrod_core::{
     color, widget, Borderable, Colorable, Labelable, Positionable, Sizeable, Widget,
 };
+use glium::Surface;
 
 const ROWS: usize = 6;
 const COLS: usize = 6;
@@ -35,6 +35,8 @@ widget_ids! {
         opponent,
         against,
         winner,
+        help,
+        help_text,
     }
 }
 
@@ -78,6 +80,8 @@ struct BoardGUI {
     opponent: Opponent,
     ai_opponent: Player,
     game: Game,
+    show_help: bool,
+    help: &'static str,
 }
 
 impl BoardGUI {
@@ -90,13 +94,19 @@ impl BoardGUI {
             opponent: Opponent::Human,
             ai_opponent: Player::Chaos,
             game: Game::new(),
+            show_help: false,
+            help: "Order and Chaos is a 6x6 \nasymmetric tic-tac-toe \nvariant.\n\nOrder's goal is \
+            to get 5 X's \nor O's in a row. \n6 in a row does not count.\n\nChaos' goal is to fill \
+            the \nboard. Order goes first. \nEither can play X or O."
         }
     }
 
+    ///Get the current game
     pub fn game(&self) -> &Game {
         &self.game
     }
 
+    ///Set the current game
     pub fn update_game(&mut self, new_game: Game) {
         self.game = new_game;
     }
@@ -136,6 +146,7 @@ impl BoardGUI {
         self.piece_matrix
     }
 
+    ///Update the cell shown in for the screen.
     pub fn set_piece_matrix(&mut self, game: &Game) {
         for row in 0..game.size() {
             for col in 0..game.size() {
@@ -147,7 +158,7 @@ impl BoardGUI {
                         MoveType::O => {
                             self.piece_matrix[flat_index(row, col)] = "O";
                         }
-                    }
+                    },
                     None => {
                         self.piece_matrix[flat_index(row, col)] = "";
                     }
@@ -184,7 +195,7 @@ impl BoardGUI {
         self.ai_opponent
     }
 
-    //The opponent is an AI
+    ///The opponent is an AI
     pub fn opponent_is_ai(&self) -> bool {
         self.opponent == Opponent::AI
     }
@@ -194,7 +205,7 @@ impl BoardGUI {
         self.ai_opponent = ai_opponent
     }
 
-    ///Create a new GUI game. Resets the internal state of the library.
+    ///Create a new GUI game. Resets the internal state of the library
     pub fn reset(&mut self) {
         self.piece_matrix = [BoardState::Empty.display(); ROWS * COLS];
         self.turn = Player::Order;
@@ -203,6 +214,21 @@ impl BoardGUI {
             handle_ai_move(self);
             self.turn = Player::Chaos;
         }
+    }
+
+    ///Toggle whether the game help information should be shown.
+    pub fn toggle_help(&mut self) {
+        self.show_help = !self.show_help;
+    }
+
+    ///Ask if the help should be displayed
+    pub fn get_help_status(&self) -> bool {
+        self.show_help
+    }
+
+    ///Get the help text
+    pub fn get_help(&self) -> &'static str {
+        self.help
     }
 }
 
@@ -249,7 +275,7 @@ fn main() {
 
     // Poll events from the window.
     let mut event_loop = support::EventLoop::new();
-    'main : loop {
+    'main: loop {
         // Handle all events.
         for event in event_loop.next(&mut events_loop) {
             // Use the `winit` backend feature to convert the winit event to a conrod one.
@@ -388,11 +414,7 @@ fn handle_piece_toggle(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &m
 /// the `Ui` at their given indices. Every other time this get called, the `Widget`s will avoid any
 /// allocations by updating the pre-existing cached state. A new graphical `Element` is only
 /// retrieved from a `Widget` in the case that it's `State` has changed in some way.
-fn set_widgets(
-    ui: &mut conrod_core::UiCell,
-    app: &mut BoardGUI,
-    ids: &mut Ids,
-) {
+fn set_widgets(ui: &mut conrod_core::UiCell, app: &mut BoardGUI, ids: &mut Ids) {
     let current_turn;
     if app.turn() == Player::Order {
         current_turn = "Order's Turn   ";
@@ -405,6 +427,25 @@ fn set_widgets(
         .up_from(ids.curr_piece, 20.)
         .font_size(16)
         .set(ids.curr_turn, ui);
+
+    let help = widget::Button::new()
+        .w_h(100.0, 25.0)
+        .top_left()
+        .color(color::WHITE)
+        .border(1.)
+        .label("Help")
+        .set(ids.help, ui);
+
+    if help.was_clicked() {
+        app.toggle_help();
+    }
+
+    if app.get_help_status() {
+        widget::Text::new(app.get_help())
+            .down_from(ids.help, 10.)
+            .font_size(16)
+            .set(ids.help_text, ui);
+    }
 
     let new_game = widget::Button::new()
         .w_h(100.0, 25.0)
