@@ -1,5 +1,4 @@
 var N = null;var sourcesIndex = {};
-sourcesIndex["Order_and_Chaos"] = {"name":"","dirs":[],"files":["board.rs","lib.rs","strategy.rs"]};
 sourcesIndex["adler32"] = {"name":"","dirs":[],"files":["lib.rs"]};
 sourcesIndex["approx"] = {"name":"","dirs":[],"files":["abs_diff_eq.rs","lib.rs","macros.rs","relative_eq.rs","ulps_eq.rs"]};
 sourcesIndex["arrayvec"] = {"name":"","dirs":[],"files":["array.rs","array_string.rs","char.rs","errors.rs","lib.rs","maybe_uninit_nodrop.rs","range.rs"]};
@@ -65,7 +64,6 @@ sourcesIndex["ordermap"] = {"name":"","dirs":[],"files":["equivalent.rs","lib.rs
 sourcesIndex["petgraph"] = {"name":"","dirs":[{"name":"algo","dirs":[],"files":["dominators.rs","mod.rs"]},{"name":"graph_impl","dirs":[{"name":"stable_graph","dirs":[],"files":["mod.rs"]}],"files":["frozen.rs","mod.rs"]},{"name":"visit","dirs":[],"files":["dfsvisit.rs","filter.rs","macros.rs","mod.rs","reversed.rs","traversal.rs"]}],"files":["astar.rs","csr.rs","data.rs","dijkstra.rs","dot.rs","graphmap.rs","isomorphism.rs","iter_format.rs","iter_utils.rs","lib.rs","macros.rs","prelude.rs","scored.rs","traits_graph.rs","unionfind.rs","util.rs"]};
 sourcesIndex["png"] = {"name":"","dirs":[{"name":"decoder","dirs":[],"files":["mod.rs","stream.rs"]}],"files":["chunk.rs","common.rs","crc.rs","encoder.rs","filter.rs","lib.rs","traits.rs","utils.rs"]};
 sourcesIndex["proc_macro2"] = {"name":"","dirs":[],"files":["fallback.rs","lib.rs","strnom.rs","wrapper.rs"]};
-sourcesIndex["project"] = {"name":"","dirs":[],"files":["board.rs","lib.rs","strategy.rs"]};
 sourcesIndex["quote"] = {"name":"","dirs":[],"files":["ext.rs","lib.rs","runtime.rs","to_tokens.rs"]};
 sourcesIndex["rand"] = {"name":"","dirs":[{"name":"distributions","dirs":[],"files":["bernoulli.rs","binomial.rs","cauchy.rs","dirichlet.rs","exponential.rs","float.rs","gamma.rs","integer.rs","mod.rs","normal.rs","other.rs","pareto.rs","poisson.rs","triangular.rs","uniform.rs","unit_circle.rs","unit_sphere.rs","utils.rs","weibull.rs","weighted.rs","ziggurat_tables.rs"]},{"name":"prng","dirs":[],"files":["mod.rs"]},{"name":"rngs","dirs":[{"name":"adapter","dirs":[],"files":["mod.rs","read.rs","reseeding.rs"]}],"files":["entropy.rs","mock.rs","mod.rs","small.rs","std.rs","thread.rs"]},{"name":"seq","dirs":[],"files":["index.rs","mod.rs"]}],"files":["deprecated.rs","lib.rs","prelude.rs"]};
 sourcesIndex["rand_chacha"] = {"name":"","dirs":[],"files":["chacha.rs","lib.rs"]};

@@ -12,17 +12,21 @@
 <span id="12">12</span>
 <span id="13">13</span>
 <span id="14">14</span>
+<span id="15">15</span>
+<span id="16">16</span>
 </pre><div class="example-wrap"><pre class="rust ">
-<span class="doccomment">///A Board defines a game of Order and Chaos. A user facing client application should utilize the</span>
-<span class="doccomment">/// enums and structs declared publicly in this module. A game is considered to be an immutable</span>
-<span class="doccomment">/// structure. Each player&#39;s move will result in a new game with the correct state.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// To use this as a library, a client application will need to create an initial game object</span>
-<span class="doccomment">/// and manage any relevant input or output data. The GameStatus enum will inform the client</span>
-<span class="doccomment">/// whether or not the game has been won by any player. A formatter for println! is provided</span>
-<span class="doccomment">/// within the game struct; however, any other UI for the game is the responsibility of the client.</span>
+<span class="doccomment">/*!
+The game struct defines a game of Order and Chaos. A user facing client application should utilize
+the public enums and structs described below. A game is considered to be an immutable
+structure. Each player&#39;s move will result in a new game with the correct state.
+
+To use this as a library, a client application will need to create an initial game object
+and manage any relevant input or output data. The GameStatus enum will inform the client
+whether or not the game has been won by any player. A formatter for println! is provided
+within the game struct; however, any other UI for the game is the responsibility of the client.
+*/</span>
 <span class="kw">mod</span> <span class="ident">board</span>;
-<span class="doccomment">///Strategy contains the implementation details for an Order and Chaos AI player. As such,</span>
+<span class="doccomment">/// Strategy contains the implementation details for an Order and Chaos AI player. As such,</span>
 <span class="doccomment">/// there is no publicly available API components in the strategy module.</span>
 <span class="kw">mod</span> <span class="ident">strategy</span>;
 

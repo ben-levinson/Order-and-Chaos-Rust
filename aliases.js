@@ -1,5 +1,4 @@
 var ALIASES = {};
-ALIASES["Order_and_Chaos"] = {};
 ALIASES["adler32"] = {};
 ALIASES["approx"] = {};
 ALIASES["arrayvec"] = {};
@@ -65,7 +64,6 @@ ALIASES["ordermap"] = {};
 ALIASES["petgraph"] = {};
 ALIASES["png"] = {};
 ALIASES["proc_macro2"] = {};
-ALIASES["project"] = {};
 ALIASES["quote"] = {};
 ALIASES["rand"] = {};
 ALIASES["rand_chacha"] = {};
