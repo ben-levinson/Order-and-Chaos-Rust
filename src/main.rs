@@ -1,4 +1,4 @@
-use order_and_chaos::board::{Game, GameStatus, Move, MoveType, Player, Strategy};
+use order_and_chaos::{Game, GameStatus, Move, MoveType, Player, Strategy};
 
 #[macro_use]
 extern crate conrod_core;

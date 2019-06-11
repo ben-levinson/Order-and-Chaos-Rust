@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::fmt;
 
-///A Player is either Order or Chaos
+///A Player is either Order or Chaos.
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Debug)]
 pub enum Player {
     Order,
@@ -9,14 +9,14 @@ pub enum Player {
 }
 
 impl Player {
-    ///Print out the current player type
+    ///Print out the current player type.
     pub fn display(&self) -> &'static str {
         match self {
             Player::Order => "Order",
             Player::Chaos => "Chaos",
         }
     }
-    ///Get the type of the other player
+    ///Get the type of the other player.
     pub fn other_player(&self) -> Self {
         match self {
             Player::Order => Player::Chaos,
@@ -61,7 +61,7 @@ impl Move {
     }
 }
 
-///Defines directions for checking if the game is in a win state.
+///Defines directions for checking if the game is in a won state.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoardDirection {
     Row,
@@ -75,7 +75,7 @@ pub enum BoardDirection {
 pub struct Game {
     size: usize,
     num_to_win: usize,
-    board: [Option<MoveType>; SIZE * SIZE],
+    board: [[Option<MoveType>; SIZE]; SIZE],
     pieces_placed: usize,
     last_move: Option<(usize, usize)>,
 }
@@ -85,7 +85,7 @@ impl Game {
     pub fn new() -> Self {
         Game {
             size: SIZE,
-            board: [None; SIZE * SIZE],
+            board: [[None; SIZE];SIZE],
             pieces_placed: 0,
             num_to_win: 5,
             last_move: None,
@@ -98,7 +98,7 @@ impl Game {
 
     ///Query the board for the Piece at a given location.
     pub fn index(&self, row: usize, col: usize) -> Option<MoveType> {
-        self.board[row * self.size + col].clone()
+        self.board[row][col].clone()
     }
 
     ///Get the size of the board.
@@ -107,7 +107,7 @@ impl Game {
     }
 
     ///Get the number of like pieces in a given direction.
-    fn num_consecutive(to_search: usize, f: &Fn(usize) -> Option<MoveType>) -> usize {
+    fn num_consecutive(to_search: usize, f: impl Fn(usize) -> Option<MoveType>) -> usize {
         let mut max_count = 0;
         let mut count = 0;
         let mut cell_type = MoveType::X;
@@ -165,14 +165,15 @@ impl Game {
 
     ///Get a list of the open spaces in the game.
     pub fn open_indices(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
-        let size = self.size;
         self.board
             .iter()
             .enumerate()
-            .filter_map(move |(i, m)| match m {
-                Some(_) => None,
-                None => Some((i / size, i % size)),
-            })
+            .flat_map(|(x, row)| row.iter()
+                .enumerate()
+                .flat_map(move |(y, column)| match column {
+                    Some(_) => None,
+                    None => Some((x, y)),
+                }))
     }
 
     ///Query the status of the game. Has a player won or is the game still in progress.
@@ -200,13 +201,14 @@ impl Game {
         GameStatus::InProgress
     }
 
-    ///Places a piece with a location specified by the move into the game.
+    ///Places a piece with a location specified by the move into the game. Returns none if the game
+    /// has been won or if the move is invalid.
     pub fn make_move(&self, m: Move) -> Option<Game> {
         if self.index(m.row, m.col).is_some() || self.get_status() != GameStatus::InProgress {
             None
         } else {
             let mut new_board = self.board.clone();
-            new_board[m.row * self.size + m.col] = Some(m.piece_type);
+            new_board[m.row][m.col] = Some(m.piece_type);
             Some(Game {
                 size: self.size,
                 num_to_win: self.num_to_win,

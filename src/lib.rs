@@ -6,7 +6,9 @@
 /// and manage any relevant input or output data. The GameStatus enum will inform the client
 /// whether or not the game has been won by any player. A formatter for println! is provided
 /// within the game struct; however, any other UI for the game is the responsibility of the client.
-pub mod board;
+mod board;
 ///Strategy contains the implementation details for an Order and Chaos AI player. As such,
 /// there is no publicly available API components in the strategy module.
-pub mod strategy;
+mod strategy;
+
+pub use board::{Game, GameStatus, Move, MoveType, Player, Strategy};
