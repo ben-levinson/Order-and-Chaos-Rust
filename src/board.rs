@@ -45,18 +45,18 @@ const SIZE: usize = 6;
 ///A move consists of a piece and a location in the board.
 #[derive(Clone, Copy, Debug)]
 pub struct Move {
-    piece_type: MoveType,
+    mov_type: MoveType,
     row: usize,
     col: usize,
 }
 
 impl Move {
     ///Creates a new move with the specified MoveType and location.
-    pub fn new(piece_type: MoveType, row: usize, col: usize) -> Self {
+    pub fn new(mov_type: MoveType, row: usize, col: usize) -> Self {
         Move {
-            piece_type: piece_type,
-            row: row,
-            col: col,
+            mov_type,
+            row,
+            col,
         }
     }
 }
@@ -163,7 +163,7 @@ impl Game {
         }
     }
 
-    ///Get a list of the open spaces in the game.
+    ///Get an iterator over the open spaces in the game.
     pub fn open_indices(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         self.board
             .iter()
@@ -176,9 +176,9 @@ impl Game {
                 }))
     }
 
-    ///Query the status of the game. Has a player won or is the game still in progress.
+    ///Query the status of the game. Indicates if a player won or if the game still in progress.
     pub fn get_status(&self) -> GameStatus {
-        // No move has been made yet (or the invarient is broken...)
+        // No move has been made yet (or the invariant is broken...)
         let (col, row) = match self.last_move {
             Some(pair) => pair,
             None => return GameStatus::InProgress,
@@ -208,7 +208,7 @@ impl Game {
             None
         } else {
             let mut new_board = self.board.clone();
-            new_board[m.row][m.col] = Some(m.piece_type);
+            new_board[m.row][m.col] = Some(m.mov_type);
             Some(Game {
                 size: self.size,
                 num_to_win: self.num_to_win,
